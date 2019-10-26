@@ -47,7 +47,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_hid.h"
 #include "usbh_hid_parser.h"
-#include "int/input_int.h"
+#include "../../../common/int/input_int.h"
 #include <debug.h>
 
 #if defined(BSP_DRIVER)

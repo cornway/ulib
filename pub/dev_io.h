@@ -4,7 +4,6 @@
 #ifndef __DEVIO_H__
 #define __DEVIO_H__
 
-#include <arch.h>
 #include <bsp_api.h>
 
 #define DSEEK_SET 0

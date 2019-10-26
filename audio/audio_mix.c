@@ -2,7 +2,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "int/audio_int.h"
+
+#include "../../common/int/audio_int.h"
 #include "audio_main.h"
 #include <heap.h>
 

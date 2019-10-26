@@ -24,6 +24,8 @@ typedef struct {
     unsigned timing_640x480_60   : 1;
     unsigned timing_720x400_88   : 1;
     unsigned timing_720x400_70   : 1;
+    unsigned timing_720x480_30   : 1;
+
 
     unsigned timing_1280x1024_75 : 1;
     unsigned timing_1024x768_75  : 1;

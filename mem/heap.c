@@ -1,7 +1,8 @@
-#include <arch.h>
 #include <stdlib.h>
-#include <mpu.h>
+
 #include <misc_utils.h>
+#include <arch.h>
+#include "../../common/int/mpu.h"
 #include <debug.h>
 #include <bsp_sys.h>
 
@@ -115,7 +116,7 @@ void heap_dump (void)
     arch_word_t heap_mem, heap_size, heap_size_left;
 
     dprintf("%s() :\n", __func__);
-    arch_get_heap(&heap_mem, &heap_size);
+    __arch_get_heap(&heap_mem, &heap_size);
 
     heap_size_left = heap_size - MPU_CACHELINE * 2 - heap_size_total;
     assert(heap_size_left <= heap_size);

@@ -2,6 +2,7 @@
 #define __HEAP_H__
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #define ALIGN(x) __attribute__((aligned(x)))
 

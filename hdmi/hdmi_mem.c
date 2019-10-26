@@ -30,12 +30,12 @@
 
 #if defined(BSP_DRIVER)
 
+#include <string.h>
+#include <math.h>
+
 #include "stm32f769i_discovery_lcd.h"
 #include "main.h"
 #include "debug.h"
-#include "arch.h"
-#include <string.h>
-#include <math.h>
 #include "misc_utils.h"
 
 #ifndef strchrnul

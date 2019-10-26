@@ -1,9 +1,8 @@
 #ifndef __BSP_API_H__
 #define __BSP_API_H__
 
-#include <arch.h>
-
-#include <nvic.h>
+#include <../arch/arch.h>
+#include "../../common/int/nvic.h"
 
 #if defined(MODULE)
 #define BSP_INDIR_API 1

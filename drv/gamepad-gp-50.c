@@ -1,5 +1,5 @@
 
-#include "../int/input_int.h"
+#include "../../common/int/input_int.h"
 
 #include <misc_utils.h>
 #include <input_main.h>

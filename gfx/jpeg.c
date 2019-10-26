@@ -1,6 +1,4 @@
 
-#include "int/lcd_int.h"
-
 #include <jpeg.h>
 #include <lcd_main.h>
 #include <misc_utils.h>

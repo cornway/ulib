@@ -6,7 +6,7 @@
 #include <lcd_main.h>
 #include <dev_io.h>
 #include <heap.h>
-#include <bsp_cmd.h>
+#include "../../common/int/bsp_cmd.h"
 
 extern void gui_rect_fill_HAL (dim_t *dest, dim_t *rect, rgba_t color);
 extern void gui_com_fill_HAL (component_t *com, rgba_t color);

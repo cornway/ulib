@@ -1,7 +1,7 @@
 #include <string.h>
 
 #include <debug.h>
-#include "int/boot_int.h"
+#include "../../common/int/boot_int.h"
 
 #include <misc_utils.h>
 #include <dev_io.h>

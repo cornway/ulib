@@ -2,15 +2,15 @@
 
 #if defined(BSP_DRIVER)
 
-#include "int/lcd_int.h"
-#include "gui/colors.h"
+#include "../../../common/int/lcd_int.h"
+#include "../../gui/colors.h"
+#include <../../../common/int/mpu.h>
 #include <gui.h>
 
 #include <lcd_main.h>
 #include <misc_utils.h>
 #include <debug.h>
 #include <heap.h>
-#include <mpu.h>
 #include <bsp_sys.h>
 
 static void screen_copy_1x1_SW (screen_t *in);

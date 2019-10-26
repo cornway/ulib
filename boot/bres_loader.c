@@ -1,11 +1,11 @@
 #include <string.h>
 
 #include <debug.h>
-#include "int/boot_int.h"
+#include "../../common/int/boot_int.h"
+#include "../../common/int/bsp_cmd.h"
 
 #include <misc_utils.h>
 #include <dev_io.h>
-#include <bsp_cmd.h>
 #include <bconf.h>
 
 typedef struct {

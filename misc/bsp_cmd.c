@@ -1,11 +1,11 @@
 #include <string.h>
 #include <ctype.h>
 #include <debug.h>
-#include "int/term_int.h"
-#include "boot/int/boot_int.h"
-#include "int/bsp_cmd_int.h"
-#include "int/bsp_mod_int.h"
-#include <bsp_cmd.h>
+#include "../../common/int/term_int.h"
+#include "../../common/int/boot_int.h"
+#include "../../common/int/bsp_cmd_int.h"
+#include "../../common/int/bsp_mod_int.h"
+#include "../../common/int/bsp_cmd.h"
 #include <debug.h>
 #include <heap.h>
 #include <misc_utils.h>

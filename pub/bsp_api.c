@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stdarg.h>
-#include "int/bsp_mod_int.h"
-#include "int/term_int.h"
-#include <bsp_cmd.h>
+#include "../../common/int/bsp_mod_int.h"
+#include "../../common/int/term_int.h"
+#include "../../common/int/bsp_cmd.h"
 #include <bsp_api.h>
 #include <audio_main.h>
 #include <misc_utils.h>

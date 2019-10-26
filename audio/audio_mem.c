@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include "heap.h"
 #include "audio_main.h"
-#include "int/audio_int.h"
+#include "../../common/int/audio_int.h"
 
 #if AUDIO_MODULE_PRESENT
 

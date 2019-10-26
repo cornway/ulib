@@ -2,8 +2,10 @@
 #define _INPUT_MAIN_H
 
 #include <stdint.h>
+
+#include "../../common/int/touch.h"
+
 #include <bsp_api.h>
-#include <touch.h>
 
 #define GAMEPAD_USE_FLYLOOK 1
 

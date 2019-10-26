@@ -1,6 +1,6 @@
 #include <debug.h>
 
-#include "int/boot_int.h"
+#include "../../common/int/boot_int.h"
 
 #include <input_main.h>
 #include <gui.h>

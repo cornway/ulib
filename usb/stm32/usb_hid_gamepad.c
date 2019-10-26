@@ -1,14 +1,14 @@
 
 #include "stm32f7xx_it.h"
 
-#include "int/input_int.h"
-#include <usbh_def.h>
-#include <usbh_conf.h>
-#include <usbh_core.h>
-#include <usbh_hid.h>
+#include "../../common/int/input_int.h"
+#include "usbh_def.h"
+#include "usbh_conf.h"
+#include "usbh_core.h"
+#include "usbh_hid.h"
 #include <misc_utils.h>
 #include <input_main.h>
-#include <nvic.h>
+#include "../../common/int/nvic.h"
 
 #if defined(BSP_DRIVER)
 

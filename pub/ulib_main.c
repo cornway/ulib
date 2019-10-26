@@ -6,14 +6,14 @@
 #include <stdarg.h>
 #include <main.h>
 #include <misc_utils.h>
-#include <bsp_cmd.h>
+#include "../../common/int/bsp_cmd.h"
 #include <lcd_main.h>
 #include <audio_main.h>
 #include <input_main.h>
 #include <debug.h>
 #include <dev_io.h>
-#include <nvic.h>
-#include <mpu.h>
+#include "../../common/int/nvic.h"
+#include "../../common/int/mpu.h"
 #include <heap.h>
 #include <bsp_sys.h>
 

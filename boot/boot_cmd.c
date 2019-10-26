@@ -1,8 +1,8 @@
 #include <string.h>
 #include <debug.h>
-#include "../int/bsp_cmd_int.h"
-#include "../int/term_int.h"
-#include "int/boot_int.h"
+#include "../../common/int/bsp_cmd_int.h"
+#include "../../common/int/term_int.h"
+#include "../../common/int/boot_int.h"
 #include <dev_io.h>
 
 int g_boot_log_level = -1;

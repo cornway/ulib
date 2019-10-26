@@ -1,7 +1,13 @@
 #ifndef __JPEG_H__
 #define __JPEG_H__
 
-#include "../utilities/jpeg/jpeg_utils.h"
+#include <stdint.h>
+
+typedef struct {
+    uint16_t w, h;
+    uint8_t colormode;
+    uint8_t flags;
+} jpeg_info_t;
 
 int jpeg_init (const char *conf);
 void *jpeg_cache (const char *path, uint32_t *size);

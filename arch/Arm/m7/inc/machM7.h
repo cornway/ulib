@@ -259,16 +259,6 @@ _EXTERN _VALUES_IN_REGS ARG_STRUCT_T export_mach_m4_svc (ARG_STRUCT_T);
 #define arch_upcall_alias               export_mach_m4_svc
 #define arch_boot_alias                 export_mach_m4_boot
 
-static inline arch_word_t __msp (void)
-{
-    arch_word_t sp;
-    __asm
-    {
-        mov sp, msp
-    }
-    return sp;
-}
-
 #ifdef __cplusplus
     }
 #endif

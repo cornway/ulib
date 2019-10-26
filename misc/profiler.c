@@ -3,8 +3,8 @@
 #include "stdint.h"
 #include "string.h"
 #include <main.h>
-#include "int/tim_int.h"
-#include <bsp_cmd.h>
+#include "../../common/int/tim_int.h"
+#include "../../common/int/bsp_cmd.h"
 #include <debug.h>
 #include <misc_utils.h>
 #include <debug.h>
