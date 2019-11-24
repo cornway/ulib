@@ -7,6 +7,14 @@
     extern "C" {
 #endif
 
+#if defined (__ARMCC_VERSION)
+
+#elif defined(__ARMGCC_VERSION)
+
+#else
+#error "UNKNOWN COMPILER!"
+#endif
+
 #define WORD_T      uint32_t
 #define HWORD_T     uint16_t
 #define BYTE_T      uint8_t

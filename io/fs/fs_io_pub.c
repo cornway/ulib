@@ -1,6 +1,6 @@
+#include "stdarg.h"
 
 #include <misc_utils.h>
-#include "stdarg.h"
 #include <dev_io.h>
 
 

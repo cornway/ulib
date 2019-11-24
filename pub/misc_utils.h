@@ -2,6 +2,7 @@
 #define __MISC_UTILS_H__
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <arch.h>
 #include <dev_conf.h>

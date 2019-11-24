@@ -50,6 +50,12 @@ typedef struct {
 
 } hdmi_timing_t;
 
+typedef struct SCREEN_Std_Format_s {
+    float pclock;
+    uint16_t hact, hstart, hend, htotal;
+    uint16_t vact, vstart, vend, vtotal;
+    char hpol, vpol;
+} SCREEN_Std_FormatTypeDef;
 
 int hdmi_parse_edid (hdmi_timing_t *timing, hdmi_edid_seg_t *edid, int size);
 

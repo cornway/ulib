@@ -6,7 +6,6 @@
 #include "audio_main.h"
 #include "dev_io.h"
 #include <debug.h>
-#include <stdio.h>
 
 #if MUSIC_MODULE_PRESENT
 

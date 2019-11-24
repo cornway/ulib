@@ -1,5 +1,4 @@
 #include <string.h>
-#include <stdio.h>
 #include "../../common/int/audio_int.h"
 #include <bsp_sys.h>
 #include <audio_main.h>

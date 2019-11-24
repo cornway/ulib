@@ -7,14 +7,26 @@
     extern "C" {
 #endif
 
-#ifdef __ARMCC_VERSION
-        
+#if defined (__ARMCC_VERSION)
 
-        
+#define V_PREPACK
+#define V_POSTPACK __attribute__((packed))
+#define PACKED __packed
+
+#define _VALUES_IN_REGS __value_in_regs
+
+#elif defined(__ARMGCC_VERSION)
+
+#define V_PREPACK
+#define V_POSTPACK __attribute__((packed))
+#define PACKED V_POSTPACK
+
+#define _VALUES_IN_REGS
+
 #else
 #error "UNKNOWN COMPILER!"
-#endif        
-        
+#endif
+ 
 typedef uint64_t      arch_dword_t;
 typedef uint32_t      arch_word_t;
 typedef uint16_t      arch_hword_t;
@@ -24,13 +36,6 @@ typedef uint8_t       arch_byte_t;
 #define INT32_T       int32_t
 #define INT64_T       int64_t
 #define UINT64_T      uint64_t
-
-
-#define V_PREPACK
-#define V_POSTPACK __attribute__((packed))
-#define PACKED __packed
-
-#define _VALUES_IN_REGS     __value_in_regs
 
 #define _WEAK __weak      
         

@@ -49,7 +49,6 @@
 
 /* Includes ----------------------------------------------------------------- */
 #include "stm32f7xx.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
