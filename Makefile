@@ -1,7 +1,23 @@
 
-include $(TOP)/configs/.armv7xx
+PLATFORM ?= $(PLATFORM)
+TOP ?= $(TOP)
 
-ulib_stm32f7xx :
+include $(TOP)/configs/$(PLATFORM)/boot.mk
+
+CCFLAGS := $(CCFLAGS_MK)
+CCDEFS := $(CCDEFS_MK)
+
+export CCINCPUB := -I$(TOP)/ulib/pub \
+				   -I$(TOP)/ulib/arch
+
+CCINC := -I$(TOP)/main/Inc \
+		-I$(TOP)/common/Utilities/JPEG \
+		-I../boot/inc \
+		-I../gui \
+		$(CCINCPUB) \
+		$(HALINC_MK)
+
+ulib :
 	mkdir -p ./.output
 
 	cp -r ./lib/*.c ./.output/
@@ -11,45 +27,38 @@ ulib_stm32f7xx :
 	cp -r ./hdmi/hdmi_mem.c ./.output
 	cp -r ./mem/*.c ./.output/
 	cp -r ./misc/*.c ./.output/
-	cp -r ./usb/stm32/*.c ./.output/
 	cp -r ./boot/*.c ./.output/
-	cp -r ./screen/stm32/*.c ./.output/
 	cp -r ./screen/*.c ./.output/
 	cp -r ./gfx/*.c ./.output/
 	cp -r ./gui/*.c ./.output/
 	cp -r ./drv/*.c ./.output/
+
+	cp -r ./usb/$(MACHNAME_MK)/*.c ./.output/
+	cp -r ./usb/$(MACHNAME_MK)/*.h ./.output/
+
+	cp -r ./screen/$(MACHNAME_MK)/*.c ./.output/
+
 
 	cp -r ./arch ./.output/
 	cp -r ./io ./.output/
 
 	cp ./Makefile ./.output/
 
-	$(MAKE) _ulib_stm32f7xx TOP=$(TOP) -C ./.output
+	$(MAKE) $(MCPUNAME_MK) TOP=$(TOP) -C ./arch
+	$(MAKE) io TOP=$(TOP) PLATFORM=$(PLATFORM) IOFS=$(IOFS_MK) -C ./io/fs
 
-CC := $$CCBIN_TOP
+	$(MAKE) _ulib TOP=$(TOP) PLATFORM=$(PLATFORM) -C ./.output
 
-CCFLAGS := $$CCFLAGS_TOP
-CCDEFS := $$CCDEFS_TOP
-CCINC := \
-	-I../usb/stm32 \
-	-I../boot/inc \
-	-I../gui \
-	$(CCINC_TOP)
+	mv ./arch/.output/obj/*.out ./.output/obj/
+	mv ./io/fs/.output/obj/*.o ./.output/obj/
+	mv ./.output/*.o ./.output/obj/
+	$(AR) rcs ./.output/lib/ulib_$(ARCHNAME_MK).a ./.output/obj/*.o ./.output/obj/*.out
 
-
-_ulib_stm32f7xx :
+_ulib :
 	mkdir -p ./lib
 	mkdir -p ./obj
 
-	$(MAKE) armv7xx TOP=$(TOP) -C ./arch
-	$(MAKE) io TOP=$(TOP) CCDEFS=$(CCDEFS_ARMV7XX) FSSRC=FatFs -C ./io/fs
-
-	$(CC) $(CCFLAGS) $(CCINC) $(CCDEFS) $(CCINC_ARMV7XX) $(CCFLAGS_ARMV7XX) $(CCDEFS_ARMV7XX) -c ./*.c
-
-	mv ./arch/.output/obj/*.out ./obj/
-	mv ./io/fs/.output/obj/*.o ./obj/
-	mv ./*.o ./obj/
-	ar rcs ./lib/ulib_stm32f7xx.a ./obj/*.o ./obj/*.out
+	$(CC) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./*.c
 
 clean :
 	rm -rf ./.output

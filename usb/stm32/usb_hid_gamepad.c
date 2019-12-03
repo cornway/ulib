@@ -1,6 +1,4 @@
 
-#include "stm32f7xx_it.h"
-
 #include "../../common/int/input_int.h"
 #include "usbh_def.h"
 #include "usbh_conf.h"

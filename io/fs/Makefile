@@ -1,28 +1,37 @@
+PLATFORM ?= $(PLATFORM)
+TOP ?= $(TOP)
+IOFS ?= $(IOFS)
 
-CC := $$CCBIN_TOP
+include $(TOP)/configs/$(PLATFORM)/boot.mk
+
+CCFLAGS := $(CCFLAGS_MK)
+CCDEFS := $(CCDEFS_MK)
+
+CCINC := -I./src \
+		$$CCINCPUB
 
 io :
 	mkdir -p ./.output/obj
 	mkdir -p ./.output/lib
+	mkdir -p ./.output/bin
 	mkdir -p ./.output/src
 	mkdir -p ./.output/src/option
 
+	echo $(CCDEFS)
+	echo !!!
+
 	cp -r ./*.c ./.output/src/
-	cp -r ./$(FSSRC)/src/*.c ./.output/src/ 
-	cp -r ./$(FSSRC)/src/*.h ./.output/src/ 
-	cp -r ./$(FSSRC)/src/option/*.c ./.output/src/option/
-	cp $(TOP)/Inc/ffconf.h ./.output/src/
+	cp -r ./$(IOFS)/src/*.c ./.output/src/ 
+	cp -r ./$(IOFS)/src/*.h ./.output/src/ 
+	cp $(TOP)/main/Inc/ffconf.h ./.output/src/
 
 	cp ./Makefile ./.output/
 
 	$(MAKE) _io -C ./.output/
 
-CCINC := \
-	-I./src $(CCINC_TOP)
 
 _io :
-	$(CC) $(CCFLAGS) $$CCFLAGS_TOP $(CCINC) $$CCDEFS_TOP $(CCDEFS) -c ./src/*.c
-#	$(CC) $(CCFLAGS) $$CCFLAGS_TOP $(CCINC) $$CCDEFS_TOP $(CCDEFS) -c ./src/option/*.c
+	$(CC) $(CCFLAGS) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./src/*.c
 
 	mv ./*.o ./obj/
 

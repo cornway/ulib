@@ -33,10 +33,9 @@
 #include <string.h>
 #include <math.h>
 
-#include "stm32f769i_discovery_lcd.h"
-#include "main.h"
-#include "debug.h"
-#include "misc_utils.h"
+#include <debug.h>
+#include <misc_utils.h>
+#include <hdmi_pub.h>
 
 #ifndef strchrnul
 const char *strchrnul (const char *str, int ch)

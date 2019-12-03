@@ -1,7 +1,6 @@
 #ifndef _GFX_H_
 #define _GFX_H_
 
-#include "dev_conf.h"
 #include "stdint.h"
 
 #define GFX_COLOR_MODE_CLUT 1

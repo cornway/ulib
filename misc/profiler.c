@@ -3,11 +3,13 @@
 #include "stdint.h"
 #include "string.h"
 #include <main.h>
+
+#include "../../common/int/nvic.h"
 #include "../../common/int/tim_int.h"
 #include "../../common/int/bsp_cmd.h"
+
 #include <debug.h>
 #include <misc_utils.h>
-#include <debug.h>
 #include <dev_io.h>
 #include <heap.h>
 
@@ -217,6 +219,12 @@ void TIM2_IRQHandler (void)
     HAL_TIM_IRQHandler(&profile_timer_desc.handle);
 }
 
+void profiler_hal_init (void)
+{
+    DWT->CTRL |= 1 ; // enable the counter
+    DWT->CYCCNT = 0; // reset the counter
+}
+
 static void profiler_timer_init (void)
 {
 
@@ -245,8 +253,9 @@ static void profiler_timer_deinit (void)
 void profiler_init (void)
 {
     cmdvar_t dvar;
-    DWT->CTRL |= 1 ; // enable the counter
-    DWT->CYCCNT = 0; // reset the counter
+
+    profiler_hal_init();
+
     delay_us(1);
     profiler_reset();
 

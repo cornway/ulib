@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #include <arch.h>
-#include <dev_conf.h>
 #include <bsp_api.h>
 
 enum {

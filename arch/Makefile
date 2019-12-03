@@ -1,25 +1,22 @@
 
-include $(TOP)/configs/.armv7xx
+PLATFORM ?= $(PLATFORM)
+TOP ?= $(TOP)
 
-CC := $$CCBIN_TOP
-CCASM := $$CCASM_TOP
-CCFLAGS := $$CCFLAGS_TOP
-CCDEFS := $$CCDEFS_TOP
-CCINC := $$CCINCTOP
+include $(TOP)/configs/$(PLATFORM)/boot.mk
 
-ASFLAGS_M7 := $$ASFLAGS_M7_TOP
-
-armv7xx :
+$(MCPUNAME_MK) :
 	mkdir -p ./.output
 	mkdir -p ./.output/obj
 
 	cp ./Arm/m7/src/gcc/* ./.output/
 	cp Makefile ./.output
 
-	$(MAKE) _armv7xx TOP=$(TOP) -C ./.output
-_armv7xx :
-		$(CCASM) $(ASFLAGS_M7) -c ./*.s
+	$(MAKE) _$(MCPUNAME_MK) TOP=$(TOP) -C ./.output
 
-		mv ./*.out ./obj/
+_$(MCPUNAME_MK) :
+	$(AS) $(ASFLAGS_MK) -c ./*.s
+
+	mv ./*.out ./obj/
+
 clean :
 	rm -rf ./.output
