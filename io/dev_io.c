@@ -3,8 +3,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "fs/FatFs/src/ff.h"
-#include "fs/FatFs/src/ff_gen_drv.h"
+#include <ff.h>
+#include <ff_gen_drv.h>
+
 #include "../../common/int/sd_diskio.h"
 #include <misc_utils.h>
 #include <dev_io.h>

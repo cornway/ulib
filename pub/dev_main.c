@@ -7,7 +7,7 @@
 #include <debug.h>
 #include <dev_io.h>
 #include <debug.h>
-#include "../../common/int/nvic.h"
+#include <nvic.h>
 #include "../../common/int/mpu.h"
 #include <heap.h>
 #include <bsp_sys.h>

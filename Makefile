@@ -12,13 +12,18 @@ export CCINCPUB := -I$(TOP)/ulib/pub \
 
 CCINC := -I$(TOP)/main/Inc \
 		-I$(TOP)/common/Utilities/JPEG \
-		-I../boot/inc \
-		-I../gui \
+		-I$(TOP)/ulib/boot/inc \
+		-I$(TOP)/ulib/gui \
 		$(CCINCPUB) \
 		$(HALINC_MK)
 
+CCINC += -I$(TOP)/ulib/io/fs/$(IOFS_MK)/src
+
 ulib :
 	mkdir -p ./.output
+
+	echo !!!
+	echo $(TOP)/ulib/io/fs/$(IOFS)/src
 
 	cp -r ./lib/*.c ./.output/
 	cp -r ./pub/*.c ./.output/
@@ -32,6 +37,8 @@ ulib :
 	cp -r ./gfx/*.c ./.output/
 	cp -r ./gui/*.c ./.output/
 	cp -r ./drv/*.c ./.output/
+
+	cp -r ./io/*.c ./.output/
 
 	cp -r ./usb/$(MACHNAME_MK)/*.c ./.output/
 	cp -r ./usb/$(MACHNAME_MK)/*.h ./.output/

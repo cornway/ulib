@@ -2,22 +2,14 @@
 #include "string.h"
 #include "stdarg.h"
 
-#include <stm32f7xx_it.h>
-
-#include "../int/tim_int.h"
-#include "../int/term_int.h"
-
+#include <nvic.h>
+#include <tim.h>
 #include <misc_utils.h>
 #include <debug.h>
 #include <main.h>
 #include <dev_conf.h>
-#include "../int/nvic.h"
 #include <heap.h>
 #include <dev_io.h>
-
-#if defined(BSP_DRIVER)
-
-#if DEBUG_SERIAL
 
 #define TX_FLUSH_TIMEOUT 200 /*MS*/
 
@@ -38,24 +30,21 @@ static void serial_fatal (void)
 #error "DEBUG_SERIAL_USE_RX only with DEBUG_SERIAL_USE_DMA==1"
 #endif
 
-#else
+#else /*DEBUG_SERIAL_USE_DMA*/
+
+#endif /*!DEBUG_SERIAL_USE_DMA*/
 
 #ifndef DEBUG_SERIAL_USE_RX
 #warning "DEBUG_SERIAL_USE_RX undefined, using TRUE"
 #define DEBUG_SERIAL_USE_RX 1
 #endif /*!DEBUG_SERIAL_USE_DMA*/
 
-#endif /*!DEBUG_SERIAL_USE_DMA*/
-
-#ifndef USE_STM32F769I_DISCO
-#error "Not supported"
-#endif
-
 #include "../../common/int/uart_int.h"
 
 extern void serial_led_on (void);
 extern void serial_led_off (void);
 
+#if DEBUG_SERIAL_BUFERIZED
 
 static streambuf_t streambuf[STREAM_BUFCNT];
 
@@ -63,7 +52,7 @@ static streambuf_t streambuf[STREAM_BUFCNT];
 
 #if DEBUG_SERIAL_USE_RX
 
-static timer_desc_t serial_timer;
+extern timer_desc_t serial_timer;
 
 static rxstream_t rxstream;
 
@@ -72,23 +61,6 @@ static rxstream_t rxstream;
 int32_t g_serial_rx_eof = '\n';
 
 static void serial_flush_handler (int force);
-
-static uart_desc_t *
-debug_port (void)
-{
-    int i;
-
-    for (i = 0; i < uart_desc_cnt; i++) {
-
-        if (uart_desc_pool[i]->initialized &&
-            (uart_desc_pool[i]->type == SERIAL_DEBUG)) {
-
-            return uart_desc_pool[i];
-        }
-    }
-    serial_fatal();
-    return NULL;
-}
 
 #if SERIAL_TSF
 
@@ -200,7 +172,7 @@ dbgstream_submit (uart_desc_t *uart_desc, const void *data, size_t size, d_bool 
 int bsp_serial_send (char *buf, size_t cnt)
 {
     irqmask_t irq_flags = serial_timer.irqmask;
-    uart_desc_t *uart_desc = debug_port();
+    uart_desc_t *uart_desc = uart_get_stdio_port();
     int ret = 0;
 
     if (inout_early_clbk) {
@@ -273,8 +245,6 @@ int aprint (const char *str, int size)
     return size;
 }
 
-#if DEBUG_SERIAL_USE_DMA
-
 static uint8_t __check_rx_crlf (char c)
 {
     if (!g_serial_rx_eof) {
@@ -327,23 +297,27 @@ static void serial_io_fifo_flush (rxstream_t *rx, char *dest, int *pcnt)
     rx->eof = 0;
 }
 
-
 #if DEBUG_SERIAL_USE_RX
 
 void serial_tickle (void)
 {
+#if DEBUG_SERIAL_USE_DMA
+extern irqmask_t dma_rx_irq_mask;
     irqmask_t irq = dma_rx_irq_mask;
+#endif
     char buf[DMA_RX_FIFO_SIZE + 1];
     int cnt;
 
     if (rxstream.eof != 0x3) {
         return;
     }
-
+#if DEBUG_SERIAL_USE_DMA
     irq_save(&irq);
     serial_io_fifo_flush(&rxstream, buf, &cnt);
     irq_restore(irq);
-
+#else
+    serial_io_fifo_flush(&rxstream, buf, &cnt);
+#endif /*DEBUG_SERIAL_USE_DMA*/
     if (inout_early_clbk) {
         inout_early_clbk(buf, cnt, '<');
     }
@@ -352,14 +326,11 @@ void serial_tickle (void)
 
 #endif
 
-
-#endif /*DEBUG_SERIAL_USE_DMA*/
-
 #if DEBUG_SERIAL_BUFERIZED
 
 static void serial_flush_handler (int force)
 {
-    uart_desc_t *uart_desc = debug_port();
+    uart_desc_t *uart_desc = uart_get_stdio_port();
     streambuf_t *active_stream = &streambuf[uart_desc->active_stream & STREAM_BUFCNT_MS];
     uint32_t time;
 
@@ -385,7 +356,3 @@ static void serial_flush_handler (int force)
 }
 
 #endif /*DEBUG_SERIAL_BUFERIZED*/
-
-#endif /*DEBUG_SERIAL*/
-
-#endif

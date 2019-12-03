@@ -6,7 +6,7 @@
 #include "usbh_hid.h"
 #include <misc_utils.h>
 #include <input_main.h>
-#include "../../common/int/nvic.h"
+#include <nvic.h>
 
 #if defined(BSP_DRIVER)
 

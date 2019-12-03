@@ -1,13 +1,11 @@
-#if defined(BSP_DRIVER)
-
 #include "stdint.h"
 #include "string.h"
 #include <main.h>
 
-#include "../../common/int/nvic.h"
-#include "../../common/int/tim_int.h"
+#include <tim.h>
 #include "../../common/int/bsp_cmd.h"
 
+#include <nvic.h>
 #include <debug.h>
 #include <misc_utils.h>
 #include <dev_io.h>
@@ -18,7 +16,6 @@
 
 int g_profile_deep_level = 1;
 int g_profile_timer_tsf = 1;
-static __IO uint32_t *prof_timer_cnt_ptr = NULL;
 static uint8_t prof_time_init_ok = 0;
 
 enum {
@@ -39,6 +36,8 @@ typedef struct {
     int16_t top, bottom;
 } rhead_t;
 
+extern uint32_t SystemCoreClock;
+
 static int profiler_print_dvar (void *p1, void *p2);
 
 static record_t *records_pool = NULL;
@@ -47,8 +46,7 @@ static uint16_t last_alloced_record = 0;
 static rhead_t record_levels[P_MAX_DEEPTH];
 static int16_t profile_deepth = 0;
 static int caller = -1;
-
-extern uint32_t SystemCoreClock;
+timer_desc_t profile_timer_desc;
 
 static uint32_t clocks_per_us = (0U);
 
@@ -144,7 +142,7 @@ void _profiler_enter (const char *func, int line)
     rec->levelsdeep = profile_deepth - 1;
     rec->flags |= PFLAG_ENTER;
     if (prof_time_init_ok && g_profile_timer_tsf == 1) {
-        rec->cycles = *prof_timer_cnt_ptr;
+        rec->cycles = tim_hal_get_cycles(&profile_timer_desc);
     } else {
         rec->cycles = DWT->CYCCNT;
     }
@@ -169,7 +167,7 @@ void _profiler_exit (const char *func, int line)
     rec->levelsdeep = profile_deepth;
     rec->flags |= PFLAG_EXIT;
     if (prof_time_init_ok && g_profile_timer_tsf == 1) {
-        rec->cycles = *prof_timer_cnt_ptr;
+        rec->cycles = tim_hal_get_cycles(&profile_timer_desc);
     } else {
         rec->cycles = DWT->CYCCNT;
     }
@@ -197,8 +195,6 @@ void profiler_reset (void)
     profile_deepth = 0;
 }
 
-timer_desc_t profile_timer_desc;
-
 static void profile_timer_msp_init (timer_desc_t *desc)
 {
     __HAL_RCC_TIM2_CLK_ENABLE();
@@ -209,14 +205,9 @@ static void profile_timer_msp_deinit (timer_desc_t *desc)
     __HAL_RCC_TIM2_CLK_DISABLE();
 }
 
-static void profile_timer_handler (timer_desc_t *desc)
-{
-
-}
-
 void TIM2_IRQHandler (void)
 {
-    HAL_TIM_IRQHandler(&profile_timer_desc.handle);
+    tim_hal_irq_handler(&profile_timer_desc);
 }
 
 void profiler_hal_init (void)
@@ -231,18 +222,17 @@ static void profiler_timer_init (void)
     profile_timer_desc.flags = TIM_RUNREG;
     profile_timer_desc.period = 0xffffffff;
     profile_timer_desc.presc = 1000000;
-    profile_timer_desc.handler = profile_timer_handler;
+    profile_timer_desc.handler = NULL;
     profile_timer_desc.init = profile_timer_msp_init;
     profile_timer_desc.deinit = profile_timer_msp_deinit;
-    profile_timer_desc.hw = TIM2;
-    profile_timer_desc.irq = TIM2_IRQn;
+    tim_hal_set_hw(&profile_timer_desc, TIM2, TIM2_IRQn);
+
     if (hal_tim_init(&profile_timer_desc) == 0) {
         prof_time_init_ok = 1;
     }
     if (!prof_time_init_ok) {
         dprintf("%s() : fail\n", __func__);
     }
-    prof_timer_cnt_ptr = &profile_timer_desc.hw->CNT;
 }
 
 static void profiler_timer_deinit (void)
@@ -337,5 +327,3 @@ static int profiler_print_dvar (void *p1, void *p2)
     profiler_print();
     return -1;
 }
-
-#endif

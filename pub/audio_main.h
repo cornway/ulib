@@ -3,7 +3,7 @@
 
 #include "stdint.h"
 #include "dev_conf.h"
-#include "../../common/int/nvic.h"
+#include <nvic.h>
 #include <bsp_api.h>
 
 #define AUDIO_SIZE_TO_MS(rate, size) (((long long)(size) * 1000) / (rate))

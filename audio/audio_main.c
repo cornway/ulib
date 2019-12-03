@@ -1,7 +1,7 @@
 
 #include <string.h>
 #include "../../common/int/audio_int.h"
-#include "../../common/int/nvic.h"
+#include <nvic.h>
 
 #include <debug.h>
 #include <audio_main.h>

@@ -5,7 +5,7 @@
 #include <gfx.h>
 #include <gui.h>
 #include <dev_io.h>
-#include "../../common/int/nvic.h"
+#include <nvic.h>
 #include <input_main.h>
 #include <lcd_main.h>
 #include <heap.h>
