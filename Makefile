@@ -1,74 +1,78 @@
-
 PLATFORM ?= $(PLATFORM)
 TOP ?= $(TOP)
+OUT ?= $(OUT)
+Q ?= @
 
 include $(TOP)/configs/$(PLATFORM)/boot.mk
 
-CCFLAGS := $(CCFLAGS_MK)
-CCDEFS := $(CCDEFS_MK)
+CCFLAGS = $(CCFLAGS_MK)
+CCDEFS = $(CCDEFS_MK)
 
-export CCINCPUB := -I$(TOP)/ulib/pub \
-				   -I$(TOP)/ulib/arch
-
-CCINC := -I$(TOP)/main/Inc \
-		-I$(TOP)/common/Utilities/JPEG \
+CCINC = -I$(TOP)/common/Utilities/JPEG \
 		-I$(TOP)/ulib/boot/inc \
 		-I$(TOP)/ulib/gui \
-		$(CCINCPUB) \
+		-I$(TOP)/ulib/arch \
+		-I$(TOP)/ulib/pub \
+		-I$(TOP)/configs/$(PLATFORM) \
+		-I$(TOP)/main/Inc \
 		$(HALINC_MK)
 
 CCINC += -I$(TOP)/ulib/io/fs/$(IOFS_MK)/src
 
-ulib :
-	mkdir -p ./.output
+OUT_OBJ := .output/obj
 
-	echo !!!
-	echo $(TOP)/ulib/io/fs/$(IOFS)/src
+ARCH_OBJ := arch/.output/obj
+IOFS_OBJ := io/fs/.output/obj
+ULIB_OBJ := .output/obj
 
-	cp -r ./lib/*.c ./.output/
-	cp -r ./pub/*.c ./.output/
+ulib : ulib/arch ulib/iofs ulib/ulib ulib/all
 
-	cp -r ./audio/*.c ./.output/
-	cp -r ./hdmi/hdmi_mem.c ./.output
-	cp -r ./mem/*.c ./.output/
-	cp -r ./misc/*.c ./.output/
-	cp -r ./boot/*.c ./.output/
-	cp -r ./screen/*.c ./.output/
-	cp -r ./gfx/*.c ./.output/
-	cp -r ./gui/*.c ./.output/
-	cp -r ./drv/*.c ./.output/
+ulib/arch : $(ARCH_OBJ)/*.o
+ulib/iofs : $(IOFS_OBJ)/*.o
+ulib/ulib : $(ULIB_OBJ)/*.o
 
-	cp -r ./io/*.c ./.output/
+ulib/all :
+	$(Q)cp ./.output/obj/*.o $(OUT)/
 
-	cp -r ./usb/$(MACHNAME_MK)/*.c ./.output/
-	cp -r ./usb/$(MACHNAME_MK)/*.h ./.output/
+$(ARCH_OBJ)/*.o :
+	$(Q)mkdir -p ./.output/obj
+	$(MAKE) TOP=$(TOP) OUT=../$(OUT_OBJ) Q=$(Q) -C ./arch
 
-	cp -r ./screen/$(MACHNAME_MK)/*.c ./.output/
+$(IOFS_OBJ)/*.o :
+	$(Q)mkdir -p ./.output/obj
+	$(MAKE) iofs TOP=$(TOP) PLATFORM=$(PLATFORM) OUT=../../$(OUT_OBJ) Q=$(Q) -C ./io/fs
 
+$(ULIB_OBJ)/*.o :
+	@echo "Compiling $@..."
 
-	cp -r ./arch ./.output/
-	cp -r ./io ./.output/
+	$(Q)mkdir -p ./.output/obj
 
-	cp ./Makefile ./.output/
+	$(Q)cp -r ./lib/*.c ./.output/
+	$(Q)cp -r ./pub/*.c ./.output/
 
-	$(MAKE) $(MCPUNAME_MK) TOP=$(TOP) -C ./arch
-	$(MAKE) io TOP=$(TOP) PLATFORM=$(PLATFORM) IOFS=$(IOFS_MK) -C ./io/fs
+	$(Q)cp -r ./audio/*.c ./.output/
+	$(Q)cp -r ./hdmi/*.c ./.output
+	$(Q)cp -r ./mem/*.c ./.output/
+	$(Q)cp -r ./misc/*.c ./.output/
+	$(Q)cp -r ./boot/*.c ./.output/
+	$(Q)cp -r ./screen/*.c ./.output/
+	$(Q)cp -r ./gfx/*.c ./.output/
+	$(Q)cp -r ./gui/*.c ./.output/
+	$(Q)cp -r ./drv/*.c ./.output/
 
-	$(MAKE) _ulib TOP=$(TOP) PLATFORM=$(PLATFORM) -C ./.output
+	$(Q)cp -r ./io/*.c ./.output/
 
-	mv ./arch/.output/obj/*.out ./.output/obj/
-	mv ./io/fs/.output/obj/*.o ./.output/obj/
-	mv ./.output/*.o ./.output/obj/
-	$(AR) rcs ./.output/lib/ulib_$(ARCHNAME_MK).a ./.output/obj/*.o ./.output/obj/*.out
+	$(Q)cp -r ./usb/$(MACHNAME_MK)/*.c ./.output/
+	$(Q)cp -r ./usb/$(MACHNAME_MK)/*.h ./.output/
+	$(Q)cp -r ./screen/$(MACHNAME_MK)/*.c ./.output/
 
-_ulib :
-	mkdir -p ./lib
-	mkdir -p ./obj
+	$(Q) $(CC) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./.output/*.c
 
-	$(CC) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./*.c
+	$(Q)mv ./*.o ./.output/obj/
+	$(Q)cp -r ./.output/obj/*.o $(OUT)
 
 clean :
-	rm -rf ./.output
+	$(Q)rm -rf ./.output
 
 	$(MAKE) clean TOP=$(TOP) -C ./io/fs/
 	$(MAKE) clean TOP=$(TOP) -C ./arch/

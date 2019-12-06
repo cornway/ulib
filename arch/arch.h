@@ -3,7 +3,7 @@
 #ifndef __ARCH_CORE_H__
 #define __ARCH_CORE_H__
 
-#ifdef __ARCH_ARM_M4__
+#if defined(__ARCH_ARM_M4__)
 
 #define __LITTLE_ENDIAN__
 #define __LITTLE_ENDIAN_BF__
@@ -23,16 +23,33 @@
 
 #endif
 
+#ifndef arch_get_usr_heap
+extern void __arch_get_usr_heap (void *, void *);
+#define arch_get_usr_heap __arch_get_usr_heap
+#endif
+
+#ifndef arch_soft_reset
+extern void __arch_soft_reset (void);
+#define arch_soft_reset __arch_soft_reset
+#endif
+
 #ifndef arch_get_stack
+extern void __arch_get_stack (void *, void *);
 #define arch_get_stack __arch_get_stack
 #endif
+
 #ifndef arch_get_heap
+extern void __arch_get_heap (void *, void *);
 #define arch_get_heap __arch_get_heap
 #endif
+
 #ifndef arch_asmgoto
+extern void __arch_asmgoto (void *);
 #define arch_asmgoto __arch_asmgoto
 #endif
+
 #ifndef arch_get_shared
+extern void __arch_get_shared (void *, void *);
 #define arch_get_shared __arch_get_shared
 #endif
 

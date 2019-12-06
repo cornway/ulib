@@ -11,12 +11,9 @@
 #include <heap.h>
 #include <dev_io.h>
 
-#define TX_FLUSH_TIMEOUT 200 /*MS*/
+#define str_replace_2_ascii(str) d_stoalpha(str)
 
-static void serial_fatal (void)
-{
-    for (;;) {}
-}
+#define TX_FLUSH_TIMEOUT 200 /*MS*/
 
 #if !DEBUG_SERIAL_USE_DMA
 
@@ -60,8 +57,6 @@ static rxstream_t rxstream;
 
 int32_t g_serial_rx_eof = '\n';
 
-static void serial_flush_handler (int force);
-
 #if SERIAL_TSF
 
 #define MSEC 1000
@@ -102,14 +97,10 @@ __insert_tsf (const char *fmt, char *buf, int max)
 
 #if DEBUG_SERIAL_BUFERIZED
 
-static void _dbgstream_submit (uart_desc_t *uart_desc, const void *data, size_t cnt)
+static inline void _dbgstream_submit (uart_desc_t *uart_desc, const void *data, size_t cnt)
 {
-    HAL_StatusTypeDef status;
-
-    status = serial_submit_to_hw(uart_desc, data, cnt);
-
-    if (status != HAL_OK) {
-        serial_fatal();
+    if (serial_submit_to_hw(uart_desc, data, cnt) < 0) {
+        fatal_error("%s() : fail\n");
     }
 }
 
@@ -149,7 +140,7 @@ dbgstream_submit (uart_desc_t *uart_desc, const void *data, size_t size, d_bool 
         active_stream = &streambuf[(++uart_desc->active_stream) & STREAM_BUFCNT_MS];
     }
     if (size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
-        serial_fatal();
+        fatal_error("%s() : fail\n");
     }
     if (size) {
         dbgstream_apend_data(active_stream, data, size);
@@ -208,7 +199,7 @@ void serial_flush (void)
     irqmask_t irq_flags = serial_timer.irqmask;
 
     irq_save(&irq_flags);
-    serial_flush_handler(1);
+    serial_rx_flush_handler(1);
     irq_restore(irq_flags);
 }
 
@@ -259,7 +250,7 @@ static uint8_t __check_rx_crlf (char c)
     return 0;
 }
 
-static void _serial_rx_cplt (uint8_t full)
+void serial_rx_cplt_handler (uint8_t full)
 {
     int dmacplt = sizeof(rxstream.dmabuf) / 2;
     int cnt = dmacplt;
@@ -328,7 +319,7 @@ extern irqmask_t dma_rx_irq_mask;
 
 #if DEBUG_SERIAL_BUFERIZED
 
-static void serial_flush_handler (int force)
+void serial_rx_flush_handler (int force)
 {
     uart_desc_t *uart_desc = uart_get_stdio_port();
     streambuf_t *active_stream = &streambuf[uart_desc->active_stream & STREAM_BUFCNT_MS];
@@ -349,7 +340,7 @@ static void serial_flush_handler (int force)
             active_stream->data[active_stream->bufposition++] = '\n';
             dbgstream_submit(uart_desc, NULL, 0, d_true);
             if (force) {
-                dma_tx_waitflush(uart_desc);
+                uart_hal_sync(uart_desc);
             }
         }
     }

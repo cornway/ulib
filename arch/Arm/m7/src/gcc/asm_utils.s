@@ -2,6 +2,9 @@
                     .section .text
 
                     .global asmread32
+                    .type asmread32, %function
+                    .global asmread16
+                    .type asmread16, %function
 
 asmread32:
                     PUSH {R1, R2}
@@ -36,8 +39,6 @@ swap32:
                     ORR  R0, R2, R1
                     B    return32
 
-                    .global asmread16
-
 asmread16:
                     PUSH {R1, R2}
                     AND  R1, R0, #0x3
@@ -58,3 +59,5 @@ worstcase16:
                     MOV  R1, R1, LSL #0x8
                     ORR  R0, R2, R1
                     B return16
+
+                    .end

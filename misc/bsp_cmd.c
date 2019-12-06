@@ -667,10 +667,9 @@ static int __dir_list (int verbose, char *pathbuf, int recursion,
 
 static int cmd_bsp_sys_reset (int argc, const char **argv)
 {
-extern void SystemSoftReset (void);
     dprintf("board reset...\n");
     serial_flush();
-    SystemSoftReset();
+    arch_soft_reset();
     assert(0);
     return -CMDERR_UNKNOWN;
 }

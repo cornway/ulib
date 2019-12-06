@@ -139,9 +139,8 @@ void heap_init (void)
     heap_size_total = heap_size - MPU_CACHELINE * 2;
 #ifdef BOOT
 extern void m_init (void *pool, uint32_t size);
-extern void __arch_user_heap (void *mem, void *size);
 
-    __arch_user_heap(&heap_user_mem_ptr, &heap_user_size);
+    arch_get_usr_heap(&heap_user_mem_ptr, &heap_user_size);
     dprintf("user heap : <0x%p> + %u bytes\n", (void *)heap_user_mem_ptr, heap_user_size);
     m_init(heap_user_mem_ptr, heap_user_size);
 #endif /*BOOT*/

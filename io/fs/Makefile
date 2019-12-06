@@ -1,39 +1,32 @@
 PLATFORM ?= $(PLATFORM)
 TOP ?= $(TOP)
-IOFS ?= $(IOFS)
+OUT ?= $(OUT)
+Q ?= @
 
 include $(TOP)/configs/$(PLATFORM)/boot.mk
 
 CCFLAGS := $(CCFLAGS_MK)
 CCDEFS := $(CCDEFS_MK)
 
-CCINC := -I./src \
-		$$CCINCPUB
+CCINC := -I$(TOP)/ulib/pub \
+		 -I$(TOP)/configs/$(PLATFORM) \
+		 -I$(TOP)/ulib/arch
 
-io :
-	mkdir -p ./.output/obj
-	mkdir -p ./.output/lib
-	mkdir -p ./.output/bin
-	mkdir -p ./.output/src
-	mkdir -p ./.output/src/option
+iofs :
+	@echo "Compiling $(IOFS_MK) $@..."
 
-	echo $(CCDEFS)
-	echo !!!
+	@mkdir -p ./.output/obj
+	@mkdir -p ./.output/src
 
-	cp -r ./*.c ./.output/src/
-	cp -r ./$(IOFS)/src/*.c ./.output/src/ 
-	cp -r ./$(IOFS)/src/*.h ./.output/src/ 
-	cp $(TOP)/main/Inc/ffconf.h ./.output/src/
+	@cp $(TOP)/configs/$(PLATFORM)/ffconf.h ./.output/src/
 
-	cp ./Makefile ./.output/
+	@cp -r ./$(IOFS_MK)/src/*.c ./.output/src/ 
+	@cp -r ./$(IOFS_MK)/src/*.h ./.output/src/ 
 
-	$(MAKE) _io -C ./.output/
+	$(Q) $(CC) $(CCFLAGS) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./.output/src/*.c
 
-
-_io :
-	$(CC) $(CCFLAGS) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./src/*.c
-
-	mv ./*.o ./obj/
-
+	@mv ./*.o ./.output/obj/
+	@cp ./.output/obj/*.o $(OUT)
+	
 clean :
-	rm -rf ./.output
+	@rm -rf ./.output

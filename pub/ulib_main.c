@@ -39,8 +39,6 @@ void dumpstack (void)
 
 void fatal_error (char *message, ...)
 {
-extern void SystemSoftReset (void);
-
     va_list argptr;
 
     va_start (argptr, message);
@@ -48,7 +46,7 @@ extern void SystemSoftReset (void);
     va_end (argptr);
 
     serial_flush();
-    SystemSoftReset();
+    arch_soft_reset();
     for(;;) {}
 }
 

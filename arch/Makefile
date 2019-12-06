@@ -1,22 +1,28 @@
-
 PLATFORM ?= $(PLATFORM)
+OUT ?= $(OUT)
 TOP ?= $(TOP)
+Q ?= @
 
 include $(TOP)/configs/$(PLATFORM)/boot.mk
 
-$(MCPUNAME_MK) :
-	mkdir -p ./.output
-	mkdir -p ./.output/obj
+ARMV7 := armv7
 
-	cp ./Arm/m7/src/gcc/* ./.output/
-	cp Makefile ./.output
+arch :
+	@echo "Compiling $(MCPUNAME_MK) $@..."
 
-	$(MAKE) _$(MCPUNAME_MK) TOP=$(TOP) -C ./.output
+	@mkdir -p ./.output
+	@mkdir -p ./.output/obj
 
-_$(MCPUNAME_MK) :
-	$(AS) $(ASFLAGS_MK) -c ./*.s
+ifeq ($(MCPUNAME_MK), armv7)
+	@cp ./Arm/m7/src/gcc/* ./.output/
+else
+	@echo "Unknown arch model [$(MCPUNAME_MK)]"
+	exit -1;
+endif
+	$(Q) $(AS) $(ASFLAGS_MK) -c ./.output/*.s
 
-	mv ./*.out ./obj/
+	@mv ./a.out ./.output/obj/asm.o
+	@cp ./.output/obj/*.o $(OUT)
 
 clean :
-	rm -rf ./.output
+	@rm -rf ./.output
