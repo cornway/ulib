@@ -704,11 +704,9 @@ int cmd_execute (const char *cmd, int len)
 static int cmd_mod_insert (int argc, const char **argv)
 {
     arch_word_t progaddr;
-    const bsp_heap_api_t heap =
-    {
-        heap_alloc_shared,
-        heap_free,
-    };
+    bsp_heap_api_t heap;
+
+    heap_set_api_shared(&heap);
 
     if (argc < 2) {
         dprintf("usage : /path/to/file <load address 0x0xxx..>");

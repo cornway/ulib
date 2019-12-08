@@ -1,7 +1,5 @@
 /* Includes ------------------------------------------------------------------*/
 
-#if defined(BSP_DRIVER)
-
 #include "../../../common/int/lcd_int.h"
 #include "../../gui/colors.h"
 #include <../../../common/int/mpu.h>
@@ -477,11 +475,13 @@ void vid_print_info (void)
 {
     assert(lcd_active_cfg);
 
-    dprintf("Video :\n");
+    dprintf("\n");
+    dprintf("Video+ :\n");
     dprintf("width=%4.3u height=%4.3u\n", lcd_active_cfg->w, lcd_active_cfg->h);
     dprintf("layers = %u, color mode = %s \n",
              lcd_active_cfg->config.laynum, screen_mode2txt_map[lcd_active_cfg->config.colormode]);
     dprintf("framebuffer = <0x%p> 0x%08x bytes\n", lcd_active_cfg->raw_mem, lcd_active_cfg->fb_size);
+    dprintf("Video-\n");
 }
 
 static void
@@ -609,16 +609,3 @@ screen_copy_3x3_8bpp(screen_t *in)
     __screen_to_gfx2d(&src, in);
     gfx2d_scale3x3_8bpp(&dest, &src);
 }
-
-#endif
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-

@@ -21,8 +21,6 @@
 */
 #endif
 
-#if !defined(MODULE) && defined(BSP_DRIVER)
-
 extern void boot_gui_preinit (void);
 extern void VID_PreConfig (void);
 extern int mainloop (int argc, const char *argv[]);
@@ -124,6 +122,3 @@ int bsp_drv_main (void)
 
     return 0;
 }
-
-#endif /*!defined(MODULE) && defined(BSP_DRIVER)*/
-

@@ -32,14 +32,14 @@ bres_cache_file_2_mem (const bsp_heap_api_t *heapapi, const char *path, int *bin
         return NULL;
     }
     size = ROUND_UP(fsize, 32);
-    cache = heapapi->malloc(size);
+    cache = heap_api_malloc(heapapi, size);
     assert(cache);
 
     dprintf("caching bin : dest <0x%p> size [0x%08x]\n", cache, fsize);
 
     if (d_read(f, cache, fsize) < fsize) {
         dprintf("%s() : missing part\n", __func__);
-        heapapi->free(cache);
+        heap_api_free(heapapi, cache);
         cache = NULL;
     } else {
         *binsize = fsize;
@@ -49,6 +49,7 @@ bres_cache_file_2_mem (const bsp_heap_api_t *heapapi, const char *path, int *bin
     if (cache)
         dprintf("Cache done : <0x%p> : 0x%08x bytes\n", cache, fsize);
 
+    dprintf("---------------%s(); %d\n", __func__, f);
     return cache;
 }
 
@@ -91,7 +92,7 @@ void bres_exec_scan_path (void (*statfunc) (const char *, int), const char *path
                 }
             }
             if (!filesfound) {
-                dprintf("%s() : no exe here : \'%s\'\n", __func__, buf);
+                dprintf("%s() : Nothing found : \'%s\'\n", __func__, buf);
             }
             d_closedir(bindir);
         }
@@ -175,6 +176,10 @@ bres_collect_exec_path (const char *dirpath, const char *path,
 {
     exec_desc_t *bin = (exec_desc_t *)heap_malloc(sizeof(*bin));
 
+    if (NULL == bin) {
+        return NULL;
+    }
+    d_memzero(bin, sizeof(*bin));
     if (type == BIN_FILE) {
         bin = bsp_setup_bin_desc(dirpath, bin, path, originname, type);
         assert(bin);

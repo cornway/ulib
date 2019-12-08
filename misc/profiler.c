@@ -14,7 +14,7 @@
 #define P_RECORDS_MAX 1024
 #define P_MAX_DEEPTH 36
 
-int g_profile_deep_level = 1;
+int g_profile_deep_level = -1;
 int g_profile_timer_tsf = 1;
 static uint8_t prof_time_init_ok = 0;
 

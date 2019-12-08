@@ -53,6 +53,11 @@ extern void __arch_get_shared (void *, void *);
 #define arch_get_shared __arch_get_shared
 #endif
 
+#ifndef arch_startup
+extern void __arch_startup (void);
+#define arch_startup __arch_startup
+#endif
+
 #ifndef arch_set_sp
 #define arch_set_sp __set_MSP
 #endif

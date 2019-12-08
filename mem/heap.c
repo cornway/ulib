@@ -8,6 +8,14 @@
 
 #define MALLOC_MAGIC       0x75738910
 
+#if HEAP_TRACE
+
+#define heap_dbg(args...) \
+    dprintf("[HEAP DEBUG] " args)
+#else
+#define heap_dbg(args...)
+#endif
+
 typedef struct {
     size_t magic;
     size_t size;
@@ -44,8 +52,13 @@ static arch_word_t heap_user_size = 0;
 
 #endif
 
+#if HEAP_TRACE
+static inline void *
+__heap_malloc (size_t      size, int freeable, const char *func)
+#else
 static inline void *
 __heap_malloc (size_t      size, int freeable)
+#endif
 {
     mchunk_t *p;
 
@@ -53,6 +66,7 @@ __heap_malloc (size_t      size, int freeable)
     size = ROUND_UP(size, sizeof(arch_word_t));
     p = (mchunk_t *)malloc(size);
     if (!p) {
+        heap_dbg("[%s] Failed to allocate [%u] bytes\n", func, size);
         return NULL;
     }
     heap_size_total -= size;
@@ -60,16 +74,23 @@ __heap_malloc (size_t      size, int freeable)
     p->freeable = freeable;
     p->size = size;
     return (void *)(p + 1);
-
 }
 
+#if HEAP_TRACE
+static inline void
+__heap_free (void *_p, const char *func)
+#else
 static inline void
 __heap_free (void *_p)
+#endif
 {
 extern void m_free (void *);
 extern void *m_exist (void *);
     mchunk_t *p = (mchunk_t *)_p;
-    assert(_p);
+    if (NULL == p) {
+        heap_dbg("[%s] : Failed to free <%p>\n", func, p);
+        //assert(0);
+    }
 #if defined(BOOT)
     if (m_exist(p)) {
         m_free(p);
@@ -91,8 +112,13 @@ extern void *m_exist (void *);
     free(p);
 }
 
+#if HEAP_TRACE
+static inline void *
+__heap_realloc (void *x, size_t size, const char *func)
+#else
 static inline void *
 __heap_realloc (void *x, size_t size)
+#endif
 {
     mchunk_t *p = (mchunk_t *)x;
     if (!p) {
@@ -107,8 +133,13 @@ __heap_realloc (void *x, size_t size)
             __func__, size, heap_size_total);
     }
     assert(p->freeable);
+#if HEAP_TRACE
+    __heap_free(x, func);
+    return __heap_malloc(size, 1, func);
+#else
     __heap_free(x);
     return __heap_malloc(size, 1);
+#endif
 }
 
 void heap_dump (void)
@@ -153,26 +184,78 @@ void heap_deinit (void)
 
 #ifdef BOOT
 
+#if HEAP_TRACE
+
+void *_heap_alloc_shared (size_t size, const char *func)
+{
+extern void *m_malloc (uint32_t size);
+    void *p = m_malloc(size);
+    if (NULL == p) {
+        heap_dbg("[%s] : Failed to allocate [%u] bytes\n", func, size);
+    }
+    return p;
+}
+
+#else
+
 void *heap_alloc_shared (size_t size)
 {
 extern void *m_malloc (uint32_t size);
     return m_malloc(size);
 }
 
+#endif
+
 #else /*BOOT*/
 
+#if HEAP_TRACE
+void *_heap_alloc_shared (size_t size, const char *func)
+{
+    __heap_check_margin(size);
+    return __heap_malloc(size, 1, func);
+}
+#else
 void *heap_alloc_shared (size_t size)
 {
     __heap_check_margin(size);
     return __heap_malloc(size, 1);
 }
+#endif /*HEAP_TRACE*/
 
 #endif /*BOOT*/
 
-int heap_avail (void)
+size_t heap_avail (void)
 {
     return (heap_size_total - sizeof(mchunk_t));
 }
+
+#if HEAP_TRACE
+
+void *_heap_malloc (size_t  size, const char *func)
+{
+    return __heap_malloc(size, 1, func);
+}
+
+void *_heap_realloc (void *x, size_t size, const char *func)
+{
+    return __heap_realloc(x, size, func);
+}
+
+void *_heap_calloc (size_t size, const char *func)
+{
+    void *p = __heap_malloc(size, 1, func);
+    if (p) {
+        d_memzero(p, size);
+    }
+    return p;
+}
+
+void _heap_free (void *p, const char *func)
+{
+    __heap_free(p, func);
+}
+
+#else /*HEAP_TRACE*/
 
 void *heap_malloc (size_t  size)
 {
@@ -198,3 +281,4 @@ void heap_free (void *p)
     __heap_free(p);
 }
 
+#endif /*HEAP_TRACE*/

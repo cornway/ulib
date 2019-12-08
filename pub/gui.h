@@ -129,18 +129,17 @@ typedef struct pane_s {
             repaint: 1;
 } pane_t;
 
+struct bsp_heap_api_s;
+
 typedef struct gui_bsp_api_s {
-    struct mem_s {
-        void *(*alloc) (uint32_t);
-        void (*free) (void *);
-    } mem;
+    struct bsp_heap_api_s *mem;
 } gui_bsp_api_t;
 
 #define gui_bsp_alloc(gui, size) \
-    (gui)->bspapi.mem.alloc(size)
+    heap_api_malloc((gui)->bspapi.mem, size)
 
 #define gui_bsp_free(gui, ptr) \
-    (gui)->bspapi.mem.free(ptr)
+    heap_api_free((gui)->bspapi.mem, ptr)
 
 typedef struct gui_s {
     dim_t dim;

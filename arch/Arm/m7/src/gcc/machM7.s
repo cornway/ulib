@@ -43,4 +43,57 @@ __arch_asmgoto:
                     BX R0
                     B   .
 
+                    .global __arch_startup
+__arch_startup:
+                    PUSH {R0, R1, R2}
+                    LDR R0, =_sbss
+                    LDR R1, =_ebss
+                    LDR R2, =#0
+__loop:
+                    CMP R0, R1
+                    IT LT
+                    STRLT R2, [R0], #4
+                    BLT __loop
+                    POP {R0, R1, R2}
+                    BX LR
+
+                    .global __arch_fpu_enable
+__arch_fpu_enable:
+                    PUSH {R0, R1}
+                    LDR.W R0, =0xE000ED88
+                    LDR R1, [R0]
+                    ORR R1, R1, #(0xF << 20)
+                    STR R1, [R0]
+                    POP {R0, R1}
+                    BX LR
+
+.macro              __cpu_save P0
+                    DMB
+                    TST     LR, #0x04
+                    ITE     EQ
+                    MRSEQ   R0, MSP
+                    MRSNE   R0, PSP
+                    MOV     R2, LR
+                    MRS     R1, CONTROL
+                    STMDB   R0!, {R4 - R11, LR}
+                    TST     LR, #0x10 @check fpu
+                    IT      EQ
+                    VSTMDBEQ  R0!, {S16 - S31}
+                    BL      \P0
+                    TST     R2, #0x10
+                    IT      EQ
+                    VLDMIAEQ R0!, {S16 - S31}
+                    LDMIA   R0!, {R4 - R11, LR}
+                    TST     R1, #0x02
+                    ITE     EQ
+                    MSREQ   MSP, R0
+                    MSRNE   PSP, R0
+                    DMB
+                    MSR     CONTROL, R1
+                    BX      R2
+.endm
+
+                    .global HardFault_Handler
+HardFault_Handler:  BL __c_hard_fault
+
                     .end

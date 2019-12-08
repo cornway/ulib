@@ -11,60 +11,34 @@
 #include <heap.h>
 #include <dev_io.h>
 
+#if DEBUG_SERIAL_USE_DMA
+#define SERIAL_TX_BUFFERIZED 1
+#else
+#define SERIAL_TX_BUFFERIZED 0
+#endif
+
 #define str_replace_2_ascii(str) d_stoalpha(str)
-
-#define TX_FLUSH_TIMEOUT 200 /*MS*/
-
-#if !DEBUG_SERIAL_USE_DMA
-
-#if DEBUG_SERIAL_BUFERIZED
-#warning "DEBUG_SERIAL_BUFERIZED==true while DEBUG_SERIAL_USE_DMA==false"
-#undef DEBUG_SERIAL_BUFERIZED
-#define DEBUG_SERIAL_BUFERIZED 0
-#endif
-
-#ifdef DEBUG_SERIAL_USE_RX
-#error "DEBUG_SERIAL_USE_RX only with DEBUG_SERIAL_USE_DMA==1"
-#endif
-
-#else /*DEBUG_SERIAL_USE_DMA*/
-
-#endif /*!DEBUG_SERIAL_USE_DMA*/
-
-#ifndef DEBUG_SERIAL_USE_RX
-#warning "DEBUG_SERIAL_USE_RX undefined, using TRUE"
-#define DEBUG_SERIAL_USE_RX 1
-#endif /*!DEBUG_SERIAL_USE_DMA*/
 
 #include "../../common/int/uart_int.h"
 
 extern void serial_led_on (void);
 extern void serial_led_off (void);
 
-#if DEBUG_SERIAL_BUFERIZED
-
+#if SERIAL_TX_BUFFERIZED
 static streambuf_t streambuf[STREAM_BUFCNT];
-
-#endif /*DEBUG_SERIAL_BUFERIZED*/
-
-#if DEBUG_SERIAL_USE_RX
-
-extern timer_desc_t serial_timer;
-
-static rxstream_t rxstream;
-
-#endif /*DEBUG_SERIAL_USE_RX*/
+#ifndef SERIAL_TX_TIMESTAMP
+#define SERIAL_TX_TIMESTAMP 1
+#endif
+#endif /*SERIAL_TX_BUFFERIZED*/
 
 int32_t g_serial_rx_eof = '\n';
 
-#if SERIAL_TSF
-
-#define MSEC 1000
+#if SERIAL_TX_TIMESTAMP
 
 static int prev_putc = -1;
 
 static void inline
-__proc_tsf (const char *str, int size)
+__scan_last_char (const char *str, int size)
 {
     if (!str || !size) {
         return;
@@ -80,7 +54,7 @@ __proc_tsf (const char *str, int size)
 }
 
 static inline int
-__insert_tsf (const char *fmt, char *buf, int max)
+__insert_tx_time_ms (const char *fmt, char *buf, int max)
 {
     uint32_t msec, sec;
 
@@ -88,30 +62,22 @@ __insert_tsf (const char *fmt, char *buf, int max)
         prev_putc != '\n') {
         return 0;
     }
-    msec = HAL_GetTick();
-    sec = msec / MSEC;
-    return snprintf(buf, max, "[%4d.%03d] ", sec, msec % MSEC);
+    msec = d_time();
+    return snprintf(buf, max, "[%4d.%03d] ", msec / 1000, msec % 1000);
 }
+#endif /*SERIAL_TX_TIMESTAMP*/
 
-#endif /*SERIAL_TSF*/
-
-#if DEBUG_SERIAL_BUFERIZED
-
-static inline void _dbgstream_submit (uart_desc_t *uart_desc, const void *data, size_t cnt)
+#if SERIAL_TX_BUFFERIZED
+static void __submit_to_hw (uart_desc_t *uart_desc, streambuf_t *stbuf)
 {
-    if (serial_submit_to_hw(uart_desc, data, cnt) < 0) {
+    if (uart_hal_submit_tx_data(uart_desc, stbuf->data, stbuf->bufposition) < 0) {
         fatal_error("%s() : fail\n");
     }
-}
-
-static void __dbgstream_send (uart_desc_t *uart_desc, streambuf_t *stbuf)
-{
-    _dbgstream_submit(uart_desc, stbuf->data, stbuf->bufposition);
     stbuf->bufposition = 0;
     stbuf->timestamp = 0;
 }
 
-static void dbgstream_apend_data (streambuf_t *stbuf, const void *data, size_t size)
+static void __buf_append_data (streambuf_t *stbuf, const void *data, size_t size)
 {
     char *p = stbuf->data + stbuf->bufposition;
     d_memcpy(p, data, size);
@@ -121,9 +87,7 @@ static void dbgstream_apend_data (streambuf_t *stbuf, const void *data, size_t s
     stbuf->bufposition += size;
 }
 
-static inline int
-dbgstream_submit (uart_desc_t *uart_desc, const void *data, size_t size, d_bool flush)
-
+int serial_submit_tx_data (uart_desc_t *uart_desc, const void *data, size_t size, d_bool flush)
 {
     streambuf_t *active_stream = &streambuf[uart_desc->active_stream & STREAM_BUFCNT_MS];
 
@@ -131,37 +95,26 @@ dbgstream_submit (uart_desc_t *uart_desc, const void *data, size_t size, d_bool 
         size = STREAM_BUFSIZE;
     }
 
-#if SERIAL_TSF
-    __proc_tsf((const char *)data, size);
+#if SERIAL_TX_TIMESTAMP
+    __scan_last_char((const char *)data, size);
 #endif
 
     if (flush || size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
-        __dbgstream_send(uart_desc, active_stream);
+        __submit_to_hw(uart_desc, active_stream);
         active_stream = &streambuf[(++uart_desc->active_stream) & STREAM_BUFCNT_MS];
     }
     if (size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
         fatal_error("%s() : fail\n");
     }
     if (size) {
-        dbgstream_apend_data(active_stream, data, size);
+        __buf_append_data(active_stream, data, size);
     }
     return size;
 }
 
-#else /*DEBUG_SERIAL_BUFERIZED*/
-
-static inline int
-dbgstream_submit (uart_desc_t *uart_desc, const void *data, size_t size, d_bool flush)
-{
-    UNUSED(uart_desc);
-    UNUSED(data);
-    UNUSED(size);
-}
-
-#endif /*DEBUG_SERIAL_BUFERIZED*/
-
 int bsp_serial_send (char *buf, size_t cnt)
 {
+extern timer_desc_t serial_timer;
     irqmask_t irq_flags = serial_timer.irqmask;
     uart_desc_t *uart_desc = uart_get_stdio_port();
     int ret = 0;
@@ -172,16 +125,33 @@ int bsp_serial_send (char *buf, size_t cnt)
     bsp_inout_forward(buf, cnt, '>');
 
     irq_save(&irq_flags);
-
-    ret = dbgstream_submit(uart_desc, buf, cnt, d_false);
+    ret = serial_submit_tx_data(uart_desc, buf, cnt, d_false);
     if (ret <= 0) {
-        ret = dbgstream_submit(uart_desc, buf, cnt, d_true);
+        ret = serial_submit_tx_data(uart_desc, buf, cnt, d_true);
     }
-
     irq_restore(irq_flags);
-
     return ret;
 }
+
+void serial_flush (void)
+{
+    uart_hal_tx_flush();
+}
+
+#else /*SERIAL_TX_BUFFERIZED*/
+
+int bsp_serial_send (char *buf, size_t cnt)
+{
+    uart_desc_t *uart_desc = uart_get_stdio_port();
+    
+    return uart_hal_submit_tx_data(uart_desc, buf, cnt);
+}
+
+void serial_flush (void)
+{
+}
+
+#endif /*SERIAL_TX_BUFFERIZED*/
 
 void serial_putc (char c)
 {
@@ -194,21 +164,12 @@ char serial_getc (void)
     return 0;
 }
 
-void serial_flush (void)
-{
-    irqmask_t irq_flags = serial_timer.irqmask;
-
-    irq_save(&irq_flags);
-    serial_rx_flush_handler(1);
-    irq_restore(irq_flags);
-}
-
 int __dvprintf (const char *fmt, va_list argptr)
 {
     char            string[1024];
     int size = 0;
-#if SERIAL_TSF
-    size = __insert_tsf(fmt, string, sizeof(string));
+#if SERIAL_TX_TIMESTAMP
+    size = __insert_tx_time_ms(fmt, string, sizeof(string));
 #endif
     size += vsnprintf(string + size, sizeof(string) - size, fmt, argptr);
     bsp_serial_send(string, size);
@@ -236,7 +197,7 @@ int aprint (const char *str, int size)
     return size;
 }
 
-static uint8_t __check_rx_crlf (char c)
+uint8_t __check_rx_crlf (char c)
 {
     if (!g_serial_rx_eof) {
         return 0;
@@ -250,100 +211,16 @@ static uint8_t __check_rx_crlf (char c)
     return 0;
 }
 
-void serial_rx_cplt_handler (uint8_t full)
-{
-    int dmacplt = sizeof(rxstream.dmabuf) / 2;
-    int cnt = dmacplt;
-    char *src;
-
-    src = &rxstream.dmabuf[full * dmacplt];
-
-    while (cnt) {
-        rxstream.fifo[rxstream.fifoidx++ & (DMA_RX_FIFO_SIZE - 1)] = *src;
-        rxstream.eof |= __check_rx_crlf(*src);
-        src++; cnt--;
-    }
-    if (!g_serial_rx_eof) {
-        rxstream.eof = 3; /*\r & \n met*/
-    }
-}
-
-static void serial_io_fifo_flush (rxstream_t *rx, char *dest, int *pcnt)
-{
-    int16_t cnt = (int16_t)(rx->fifoidx - rx->fifordidx);
-
-    if (cnt < 0) {
-        cnt = -cnt;
-    }
-    *pcnt = cnt;
-    while (cnt > 0) {
-        *dest = rx->fifo[rx->fifordidx++ & (DMA_RX_FIFO_SIZE - 1)];
-        cnt--;
-        dest++;
-    }
-    *dest = 0;
-    /*TODO : Move next line after crlf to the begining,
-      to handle multiple lines.
-    */
-    rx->eof = 0;
-}
-
-#if DEBUG_SERIAL_USE_RX
-
 void serial_tickle (void)
 {
-#if DEBUG_SERIAL_USE_DMA
-extern irqmask_t dma_rx_irq_mask;
-    irqmask_t irq = dma_rx_irq_mask;
-#endif
-    char buf[DMA_RX_FIFO_SIZE + 1];
-    int cnt;
+    char buf[512];
+    int cnt = sizeof(buf), left;
 
-    if (rxstream.eof != 0x3) {
-        return;
-    }
-#if DEBUG_SERIAL_USE_DMA
-    irq_save(&irq);
-    serial_io_fifo_flush(&rxstream, buf, &cnt);
-    irq_restore(irq);
-#else
-    serial_io_fifo_flush(&rxstream, buf, &cnt);
-#endif /*DEBUG_SERIAL_USE_DMA*/
-    if (inout_early_clbk) {
-        inout_early_clbk(buf, cnt, '<');
-    }
-    bsp_inout_forward(buf, cnt, '<');
-}
-
-#endif
-
-#if DEBUG_SERIAL_BUFERIZED
-
-void serial_rx_flush_handler (int force)
-{
-    uart_desc_t *uart_desc = uart_get_stdio_port();
-    streambuf_t *active_stream = &streambuf[uart_desc->active_stream & STREAM_BUFCNT_MS];
-    uint32_t time;
-
-    if (!uart_desc->uart_tx_ready) {
-        return;
-    }
-
-    if (0 != active_stream->bufposition) {
-
-        time = d_time();
-
-        if ((time - active_stream->timestamp) > TX_FLUSH_TIMEOUT ||
-            force) {
-
-            active_stream->timestamp = time;
-            active_stream->data[active_stream->bufposition++] = '\n';
-            dbgstream_submit(uart_desc, NULL, 0, d_true);
-            if (force) {
-                uart_hal_sync(uart_desc);
-            }
+    left = uart_hal_io_flush(buf, &cnt);
+    if (cnt > 0) {
+        if (inout_early_clbk) {
+            inout_early_clbk(buf, cnt, '<');
         }
+        bsp_inout_forward(buf, cnt, '<');
     }
 }
-
-#endif /*DEBUG_SERIAL_BUFERIZED*/

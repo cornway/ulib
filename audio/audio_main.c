@@ -129,7 +129,7 @@ a_parse_config (a_intcfg_t *cfg, const char *str)
 
     assert(str);
 
-    dprintf("Audio config : [%s]\n", str);
+    dprintf("Audio config+ : [%s]\n", str);
     tok = "samplerate";
     if (str_parse_tok(str, tok, &cfg->samplerate) <= 0) {
         cfg->samplerate = AUDIO_RATE_DEFAULT;
@@ -159,7 +159,7 @@ a_parse_config (a_intcfg_t *cfg, const char *str)
         dprintf("%s :ok\n", tok);
     }
     a_hal_check_cfg(cfg);
-    dprintf("done\n");
+    dprintf("Audio config-\n");
 }
 
 static void

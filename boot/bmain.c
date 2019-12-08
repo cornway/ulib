@@ -273,12 +273,13 @@ static int gui_stdout_hook (int argc, const char **argv)
     return 0;
 }
 
-static inline void
+static void
 boot_gui_set_proc_stat (const char *msg, int percent)
 {
     if (win_prog_set(pane_progress, msg, percent)) {
         gui_draw(&gui, 1);
         d_sleep(10);
+        dprintf("%s() : %s; %d\n", __func__, msg, percent);
     }
 }
 
@@ -408,20 +409,19 @@ void boot_deliver_input_event (void *_evt)
     }
 }
 
+static bsp_heap_api_t heap;
+
 static void boot_gui_bsp_init (gui_t *gui)
 {
 #define GUI_FPS (25)
     screen_t s = {0};
     dim_t dim = {0};
 
-    gui_bsp_api_t bspapi =
-    {
-        .mem =
-            {
-                .alloc = heap_alloc_shared,
-                .free = heap_free,
-            },
-    };
+    gui_bsp_api_t bspapi = {{0}};
+
+    heap_set_api_shared(&heap);
+
+    bspapi.mem = &heap;
 
     vid_wh(&s);
     dim.w = s.width;

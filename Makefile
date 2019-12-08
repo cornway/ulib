@@ -42,31 +42,50 @@ $(IOFS_OBJ)/*.o :
 	$(Q)mkdir -p ./.output/obj
 	$(MAKE) iofs TOP=$(TOP) PLATFORM=$(PLATFORM) OUT=../../$(OUT_OBJ) Q=$(Q) -C ./io/fs
 
+MODULE ?=
+
+ulib/module :
+	@echo "Compiling [ $(MODULE) ]..."
+
+	$(Q)mkdir -p ./.output/$(MODULE)
+	$(Q)cp -r ./$(MODULE)/* ./.output/$(MODULE)
+	
+	$(Q)$(CC) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./.output/$(MODULE)/*.c
+
+define module/compile
+$(MAKE) ulib/module TOP=$(TOP) PLATFORM=$(PLATFORM) OUT=./$(OUT_OBJ) Q= -C ./
+endef
+
+
 $(ULIB_OBJ)/*.o :
 	@echo "Compiling $@..."
 
 	$(Q)mkdir -p ./.output/obj
 
-	$(Q)cp -r ./lib/*.c ./.output/
-	$(Q)cp -r ./pub/*.c ./.output/
-
-	$(Q)cp -r ./audio/*.c ./.output/
-	$(Q)cp -r ./hdmi/*.c ./.output
-	$(Q)cp -r ./mem/*.c ./.output/
-	$(Q)cp -r ./misc/*.c ./.output/
-	$(Q)cp -r ./boot/*.c ./.output/
-	$(Q)cp -r ./screen/*.c ./.output/
-	$(Q)cp -r ./gfx/*.c ./.output/
-	$(Q)cp -r ./gui/*.c ./.output/
-	$(Q)cp -r ./drv/*.c ./.output/
-
-	$(Q)cp -r ./io/*.c ./.output/
-
-	$(Q)cp -r ./usb/$(MACHNAME_MK)/*.c ./.output/
-	$(Q)cp -r ./usb/$(MACHNAME_MK)/*.h ./.output/
-	$(Q)cp -r ./screen/$(MACHNAME_MK)/*.c ./.output/
-
-	$(Q) $(CC) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./.output/*.c
+	$(module/compile) MODULE=lib
+	$(module/compile) MODULE=pub
+ifeq ($(HAVE_AUDIO), 1)
+	$(module/compile) MODULE=audio
+endif
+ifeq ($(HAVE_HDMI), 1)
+	$(module/compile) MODULE=hdmi
+endif
+	$(module/compile) MODULE=mem
+	$(module/compile) MODULE=misc
+	$(module/compile) MODULE=boot
+ifeq ($(HAVE_LCD), 1)
+	$(module/compile) MODULE=screen
+endif
+	$(module/compile) MODULE=gfx
+	$(module/compile) MODULE=gui
+	$(module/compile) MODULE=drv
+	$(module/compile) MODULE=io
+ifeq ($(HAVE_USB), 1)
+	$(module/compile) MODULE=usb/$(MACHNAME_MK)
+endif
+ifeq ($(HAVE_LCD), 1)
+	$(module/compile) MODULE=screen/$(MACHNAME_MK)
+endif
 
 	$(Q)mv ./*.o ./.output/obj/
 	$(Q)cp -r ./.output/obj/*.o $(OUT)

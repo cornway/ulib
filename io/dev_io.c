@@ -72,19 +72,22 @@ static inline int chk_handle (fobjhdl_t **hdls, int num)
 static inline void *allochandle (fobjhdl_t **hdls, int *num, int dir)
 {
     int i, memsize = dir ? sizeof(dirhandle_t) : sizeof(fhandle_t);
+    fobjhdl_t *h;
+    *num = -1;
 
     for (i=0 ; i<MAX_HANDLES * 2; i++) {
-        if (!hdls[i]) {
-            hdls[i] = heap_malloc(memsize);
-            if (!hdls) {
+        h = hdls[i];
+        if (NULL == h) {
+            h = heap_malloc(memsize);
+            if (NULL == h) {
                 break;
             }
-            hdls[i]->refcnt = 1;
+            h->refcnt = 1;
             *num = i;
-            return hdls[i]->ptr;
+            hdls[i] = h;
+            return h->ptr;
         }
     }
-    *num = -1;
     return NULL;
 }
 

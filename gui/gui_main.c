@@ -225,11 +225,14 @@ void gui_set_child (pane_t *parent, pane_t *child)
 
 void gui_set_pic (component_t *com, rawpic_t *pic, int top)
 {
+    com->pic = pic;
+    if (NULL == pic) {
+        return;
+    }
     pic->sprite = 0;
     if (!pic->alpha) {
         pic->alpha = 0xff;
     }
-    com->pic = pic;
     com->pictop = top;
     if (pic->w > com->dim.w) {
         pic->w = com->dim.w;

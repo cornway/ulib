@@ -80,9 +80,14 @@ int dev_priv_stub (int c, void *v)
 #define API_SETUP(api, module) \
 (api)->api.module = &(api)->module;
 
+#if defined(BOOT)
 bspapi_t *bsp_api_attach (void)
 {
-#if defined(BOOT)
+    return NULL;
+}
+#else
+bspapi_t *bsp_api_attach (void)
+{
     arch_word_t *ptr, size;
     bsp_api_int_t *api;
     tlv_t *tlv;
@@ -246,10 +251,8 @@ bspapi_t *bsp_api_attach (void)
     BSP_MOD_API(get_api)    = bspmod_get_api;
 
     return &api->api;
-#else
-    return NULL;
-#endif
 }
+#endif /*defined(BOOT)*/
 
 #else /*BSP_INDIR_API*/
 
@@ -415,7 +418,7 @@ void *sys_user_alloc (int size)
     if (!user_api.attached) {
         return NULL;
     }
-    return user_api.api.heap.malloc(size);
+    return heap_api_malloc(&user_api.api.heap, size);
 }
 
 void sys_user_free (void *p)
@@ -423,7 +426,7 @@ void sys_user_free (void *p)
     if (!user_api.attached) {
         return;
     }
-    user_api.api.heap.free(p);
+    heap_api_free(&user_api.api.heap, p);
 }
 
 int sys_user_attach (bsp_user_api_t *api)
