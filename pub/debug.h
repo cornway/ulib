@@ -45,7 +45,7 @@ typedef struct bsp_debug_api_s {
 
 #if BSP_INDIR_API
 
-#define serial_init             BSP_DBG_API(dev.init)
+#define uart_hal_tty_init             BSP_DBG_API(dev.init)
 #define serial_deinit          BSP_DBG_API(dev.deinit)
 #define serial_conf            BSP_DBG_API(dev.conf)
 #define serial_info            BSP_DBG_API(dev.info)
@@ -60,7 +60,7 @@ typedef struct bsp_debug_api_s {
 #define dprintf                 BSP_DBG_API(dprintf)
 
 #else /*BSP_INDIR_API*/
-int serial_init (void);
+int uart_hal_tty_init (void);
 void serial_deinit (void);
 void serial_putc (char c);
 char serial_getc (void);
@@ -80,7 +80,7 @@ int dvprintf (const char *fmt, va_list argptr);
 
 #else /*DEBUG_SERIAL*/
 
-static inline void serial_init (void) {}
+static inline void uart_hal_tty_init (void) {}
 static inline void serial_putc (char c) {}
 static inline char serial_getc (void) {return 0;}
 static inline void serial_send_buf (const void *data, size_t cnt){}

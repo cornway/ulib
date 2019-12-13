@@ -225,9 +225,8 @@ static void profiler_timer_init (void)
     profile_timer_desc.handler = NULL;
     profile_timer_desc.init = profile_timer_msp_init;
     profile_timer_desc.deinit = profile_timer_msp_deinit;
-    tim_hal_set_hw(&profile_timer_desc, TIM2, TIM2_IRQn);
 
-    if (hal_tim_init(&profile_timer_desc) == 0) {
+    if (hal_tim_init(&profile_timer_desc, TIM2, TIM2_IRQn) == 0) {
         prof_time_init_ok = 1;
     }
     if (!prof_time_init_ok) {

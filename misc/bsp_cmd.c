@@ -228,216 +228,30 @@ static int __cmd_filebuf_write (void *data, int len)
 
 static int __cmd_set_stdin_char (int argc, const char **argv)
 {
-    int num;
-
-    if (bsp_stdin_type == STDIN_CHAR) {
-        return -CMDERR_INVPARM;
-    }
-    num = argv[0][0] - '0';
-    assert(num >= 0);
-    switch (num) {
-        default :
-            dprintf("stdin > %i\n", num);
-            cmd_stdin_path_close();
-            bsp_stdin_unstash(saved_stdin_hdlr);
-            g_serial_rx_eof = '\n';
-            bsp_stdin_type = STDIN_CHAR;
-        break;
-    }
-    return 0;
 }
 
 static int __cmd_set_stdin_file (int argc, const char **argv)
 {
-    int f;
-    const char *payload = NULL;
-
-    if (bsp_stdin_type == STDIN_PATH) {
-        return -CMDERR_INVPARM;
-    }
-    assert(argc > 1);
-    if (argc > 2) {
-        payload = argv[2];
-    }
-
-    dprintf("stdin: path=[%s] att=[%s] ", argv[0], argv[1]);
-    if (stdin_to_path_bytes_limit > 0) {
-        dprintf("rx bytes=[%u]", stdin_to_path_bytes_limit);
-    }
-    dprintf("\n");
-
-    d_open(argv[0], &f, argv[1]);
-    stdin_file = f;
-
-    if (f < 0) {
-        dprintf("unable to create : \'%s\'\n", argv[0]);
-        return -CMDERR_NOPATH;
-    }
-    dprintf("stdin > \'%s\'\n", argv[0]);
-    g_serial_rx_eof = 0;
-    saved_stdin_hdlr = bsp_stdin_stash(cmd_stdin_to_path_write);
-    g_stdin_eof_timeout_var = d_time() + g_stdin_eof_timeout;
-    stdin_to_path_bytes_cnt = 0;
-    bsp_stdin_type = STDIN_PATH;
-    if (payload) {
-        cmd_exec_dsr("", payload);
-    }
-
-    return f;
 }
 
 static int cmd_stdin_path_close (void)
 {
-    if (__cmd_tofile_full) {
-        dprintf("file closing before flush\n");
-        assert(0);
-    }
-    dprintf("closing path\n");
-    d_close(stdin_file);
-    stdin_file = -1;
-    stdin_eof_recv = 0;
-    g_stdin_eof_timeout_var = 0;
-    return CMDERR_OK;
 }
 
 static int cmd_stdin_to_path_write (int argc, const char **argv)
 {
-    int len = argc;
-    void *data = (void *)*argv;
-    char *eof;
-
-    if (stdin_eof_recv) {
-        return len;
-    }
-
-    g_stdin_eof_timeout_var = d_time() + g_stdin_eof_timeout;
-    eof = cmd_get_eof(data, len);
-    if (eof) {
-        len = eof - (char *)data;
-    }
-
-    len = __cmd_filebuf_write(data, len);
-
-    stdin_to_path_bytes_cnt += len;
-    stdin_to_path_bytes_limit -= len;
-    assert(stdin_to_path_bytes_limit >= 0);
-
-    if (!stdin_to_path_bytes_limit) {
-        dprintf("done, received : %u bytes\n", stdin_to_path_bytes_cnt);
-    }
-    if (eof || !stdin_to_path_bytes_limit) {
-        stdin_eof_recv = 1;
-        g_stdin_eof_timeout_var = d_time() + g_stdin_eof_timeout;
-        /*[stdin > 0 -g] : means- set stdin as character stream
-           and flush everything.*/
-        cmd_exec_dsr("bsp", "stdin > 0 -g");
-    }
-    return 0;
 }
 
 static void __cmd_stdin_force_flush (void)
 {
-    dprintf("stdin: flushed\n");
-    __cmd_filebuf_flush();
 }
-
-const char *__cmd_stdin_usage =
-"\n-p - write text message, - -p <message>\n"
-"-f - mark eof sequence, if size undefined\n"
-"     - -f <pattern>,"
-      "file will be closed after <pattern> match\n"
-"-n - total bytes to receive\n"
-"-a - file open attr, - [+w],- create/replace,\n"
-"     [w],- open only, file will be extended\n"
-"-s - packet size, how much bytes i want per burst\n"
-"-t - timeout, how long to wait before flush"
-"-g - stdin flush";
 
 static int __cmd_stdin_redirect (int argc, const char **argv)
 {
-    int num = -1, pktsize = -1;
-    char attr[3] = "+w";
-    int bytes_limit;
-    char payload[256];
-    const char *argvbuf[CMD_MAX_ARG];
-
-    cmd_keyval_t kvpload =   CMD_KVSTR_S("p", &payload[0]);
-    cmd_keyval_t kv_eofseq = CMD_KVSTR_S("f", &__eof_sequence[0]);
-    cmd_keyval_t kv_fflush = CMD_KVI32_S("g", NULL);
-
-    cmd_keyval_t kvarr[] = 
-    {
-        CMD_KVI32_S("n", &bytes_limit),
-        CMD_KVSTR_S("a", &attr[0]),
-        CMD_KVI32_S("s", &pktsize),
-        CMD_KVI32_S("t", &g_stdin_eof_timeout),
-    };
-    cmd_keyval_t *kvlist[] =
-        {&kvarr[0], &kvarr[1], &kvarr[2], &kvarr[3],
-         &kvpload, &kv_eofseq, &kv_fflush};
-
-    if (argc < 1) {
-        dprintf("usage : %s\n", __cmd_stdin_usage);
-        return argc;
-    }
-
-    /*path must be always as argv[0]*/
-    argc = cmd_parm_collect(&kvlist[0], &kvlist[arrlen(kvlist) - 1],
-                        argc - 1, argvbuf, &argv[1]);
-
-    if (argc < 0) {
-        dprintf("%s() : unexpected arguments\n", __func__);
-        return -CMDERR_NOARGS;
-    }
-
-    stdin_to_path_bytes_limit = bytes_limit;
-
-    if (kv_fflush.valid) {
-        dprintf("stdin : force flush\n");
-        __cmd_stdin_force_flush();
-    }
-
-    if (sscanf(argv[0], "%i", &num)) {
-
-        const char *__argv[] = {"0"};
-        int __argc = 1;
-
-        if (__cmd_set_stdin_char(__argc, __argv) < 0) {
-            return 0;
-        }
-    } else {
-
-        const char *__argv[] = {argv[0], attr, NULL};
-        int __argc = 2;
-
-        if (kvpload.valid) {
-            __argv[2] = payload;
-            __argc++;
-        }
-        if (__cmd_set_stdin_file(__argc, __argv) < 0) {
-            return 0;
-        }
-    }
-    return argc;
 }
 
 static int cmd_stdin_ctrl (int argc, const char **argv)
 {
-    if (argc < 1) {
-        dprintf("usage : %s\n", __cmd_stdin_usage);
-        return argc;
-    }
-
-    switch (argv[0][0]) {
-        case '>':
-            argc = __cmd_stdin_redirect(argc--, &argv[1]);
-        break;
-        default :
-            dprintf("%s() : unexpected sym : [%c]\n", __func__, argv[0][0]);
-            argc = 0;
-        break;
-    }
-    return argc;
 }
 
 static int __cmd_stdin_ascii_fwd (int argc, const char **argv)

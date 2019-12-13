@@ -1,11 +1,12 @@
                     EXPORT EnableFPU
-                    EXPORT SystemSoftReset
+                    EXPORT __arch_soft_reset
                     EXPORT upcall                  [WEAK]
 ;                    EXPORT VMBOOT                  [WEAK]
                     EXPORT __arch_get_stack
                     EXPORT __arch_get_heap
                     EXPORT __arch_asmgoto
                     EXPORT __arch_get_shared
+					EXPORT __arch_get_usr_heap
 
                     IMPORT Stack_Mem
                     IMPORT Stack_Size
@@ -13,6 +14,8 @@
                     IMPORT Heap_Size
                     IMPORT Shared_Mem
                     IMPORT Shared_Size
+					IMPORT UserHeap_Mem
+					IMPORT UserHeap_Size
                 
                     MACRO 
 $label              WRAP $DEST
@@ -112,7 +115,7 @@ EnableFPU           PROC
                     ENDP
                     ALIGN
                     
-SystemSoftReset     PROC
+__arch_soft_reset   PROC
                     DSB
                     LDR R0, =0xE000ED0C ;AIRCR
                     LDR R1, =0x05FA0004
@@ -150,7 +153,17 @@ __arch_get_shared   PROC
                     POP {R2}
                     BX  LR
                     ENDP
-                        
+
+__arch_get_usr_heap PROC
+                    PUSH {R2}
+                    LDR R2, =UserHeap_Mem
+                    STR R2, [R0]
+                    LDR R2, =UserHeap_Size
+                    STR R2, [R1]
+                    POP {R2}
+                    BX  LR
+                    ENDP
+
 __arch_asmgoto      PROC
                     BX R0
                     B   .

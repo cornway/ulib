@@ -213,7 +213,7 @@ bspapi_t *bsp_api_attach (void)
     BSP_SYS_API(user_free)  = sys_user_free;
     BSP_SYS_API(user_api_attach) = sys_user_attach;
 
-    BSP_DBG_API(dev.init)   = serial_init;
+    BSP_DBG_API(dev.init)   = uart_hal_tty_init;
     BSP_DBG_API(dev.deinit) = dev_deinit_stub;
     BSP_DBG_API(dev.conf)   = dev_conf_stub;
     BSP_DBG_API(dev.info)   = dev_info_stub;

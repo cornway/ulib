@@ -21,7 +21,7 @@ typedef struct timer_desc_s {
     timflags_t flags;
 } timer_desc_t;
 
-int hal_tim_init (timer_desc_t *desc);
+int hal_tim_init (timer_desc_t *desc, void *hw, irqn_t irqn);
 int hal_tim_deinit (timer_desc_t *desc);
 
 #endif /*__TIM_H__*/

@@ -70,6 +70,7 @@ void (*dev_deinit_callback) (void) = NULL;
 
 int bsp_drv_init (void)
 {
+extern int32_t g_serial_rxtx_eol_sens;
     dev_io_init();
 
     bsp_stdin_register_if(con_echo);
@@ -80,7 +81,7 @@ int bsp_drv_init (void)
     profiler_init();
     vid_init();
     cmd_register_i32(&g_dev_debug_level, "dbglvl");
-    cmd_register_i32(&g_serial_rx_eof, "set_rxeof");
+    cmd_register_i32(&g_serial_rxtx_eol_sens, "set_rxeof");
     return 0;
 }
 
@@ -101,7 +102,7 @@ void dev_deinit (void)
     input_bsp_deinit();
     vid_deinit();
     heap_dump();
-    serial_deinit();
+    uart_if_deinit();
 }
 
 int bsp_drv_main (void)

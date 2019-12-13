@@ -10,7 +10,6 @@
 #include <misc_utils.h>
 #include <debug.h>
 
-
 #define TERM_MAX_CMD_BUF 256
 
 #define INOUT_MAX_FUNC 4
@@ -533,6 +532,13 @@ void __hexdump (printfmt_t printfmt, int stream,
         default: assert(0);
         break;
     }
+}
+
+char *__tty_append_crlf (char * buf, int pos)
+{
+    buf[pos] = '\n';
+    buf[pos + 1] = '\r';
+    return buf;
 }
 
 #endif
