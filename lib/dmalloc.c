@@ -23,6 +23,11 @@ typedef struct {
     uint8_t pool_id;
 } mpool_t;
 
+typedef struct {
+    mpool_t pool;
+    mpool_t tiny;
+} mem_t;
+
 static mpool_t mpool = {{0}}, mpool_tiny = {{0}};
 static mpool_t *mpool_arena[] = {&mpool, &mpool_tiny};
 
@@ -139,65 +144,68 @@ static void mpool_free (mpool_t *mpool, void *p)
     } while (mchunk);
 }
 
-static mpool_t *mpool_get_pool_by_id (uint8_t id)
+void *m_init (void *pool, uint32_t size)
 {
-    int i;
-
-    for (i = 0; i < arrlen(mpool_arena); i++) {
-        if (mpool_arena[i]->pool_id == id) {
-            return mpool_arena[i];
-        }
-    }
-    return NULL;
-}
-
-void m_init (void *pool, uint32_t size)
-{
-    mpool_init(&mpool, pool, size);
-    pool = mpool_alloc(&mpool, MPOOL_TINY_SIZE);
+    mem_t *mem = (mem_t *)pool;
+    size -= sizeof(mem_t);
+    mpool_init(&mem->pool, (void *)&mem[1], size);
+    pool = mpool_alloc(&mem->pool, MPOOL_TINY_SIZE);
     if (!pool) {
-        return;
+        return NULL;
     }
-    mpool_init(&mpool_tiny, pool, MPOOL_TINY_SIZE);
-    mpool.pool_id = 0;
-    mpool_tiny.pool_id = 1;
+    mpool_init(&mem->tiny, pool, MPOOL_TINY_SIZE);
+    mem->pool.pool_id = 0;
+    mem->tiny.pool_id = 1;
+    return mem;
 }
 
-void *m_exist (void *p)
+void *m_exist (void *_mem, void *p)
 {
-    if (p < mpool.start || p > mpool.end) {
+    mem_t *mem= _mem;
+    if (!mem || p < mem->pool.start || p > mem->pool.end) {
         p = NULL;
     }
     return p;
 }
 
-void *m_malloc (uint32_t size)
+void *m_malloc (void *_mem, uint32_t size)
 {
+    mem_t *mem = _mem;
     void *ptr = NULL;
 
+    if (!mem) {
+        return NULL;
+    }
     size = ROUND_UP(size, sizeof(arch_word_t));
 
     if (size < MPOOL_TINY_TRESH) {
-        ptr = mpool_alloc(&mpool_tiny, size);
+        ptr = mpool_alloc(&mem->tiny, size);
     }
     if (!ptr) {
-        ptr = mpool_alloc(&mpool, size);
+        ptr = mpool_alloc(&mem->pool, size);
     }
     return ptr;
 }
 
-void m_free (void *p)
+void m_free (void *_mem, void *p)
 {
+    mem_t *mem = _mem;
+    mpool_t *pool = NULL;
     mchunk_t *mchunk = (mchunk_t *)p;
-    mpool_t *mpool;
 
-    mchunk = mchunk - 1;
-    mpool = mpool_get_pool_by_id(mchunk->pool_id);
-    if (!mpool) {
-        /*ASSERT here*/
+    if (!mem) {
         return;
     }
-    mpool_free(mpool, p);
+    mchunk = mchunk - 1;
+    if (mchunk->pool_id == mem->pool.pool_id) {
+        pool = &mem->pool;
+    }
+    if (!pool) {
+        pool = &mem->tiny;
+        return;
+    }
+    assert(pool);
+    mpool_free(pool, p);
 }
 
 static void mlist_print (mlist_t *mlist, const char *name)

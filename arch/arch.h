@@ -23,6 +23,12 @@
 
 #endif
 
+#ifdef CPU_CHACHELINE
+#define MPU_CACHELINE CPU_CHACHELINE
+#else
+#define MPU_CACHELINE 32
+#endif
+
 #ifndef arch_get_usr_heap
 extern void __arch_get_usr_heap (void *, void *);
 #define arch_get_usr_heap __arch_get_usr_heap

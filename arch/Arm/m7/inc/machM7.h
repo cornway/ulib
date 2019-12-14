@@ -26,7 +26,9 @@
 #else
 #error "UNKNOWN COMPILER!"
 #endif
- 
+
+#define CPU_CHACHELINE (32)
+
 typedef uint64_t      arch_dword_t;
 typedef uint32_t      arch_word_t;
 typedef uint16_t      arch_hword_t;
@@ -37,8 +39,8 @@ typedef uint8_t       arch_byte_t;
 #define INT64_T       int64_t
 #define UINT64_T      uint64_t
 
-#define _WEAK __weak      
-        
+#define _WEAK __weak
+
 #define _STATIC static
 
 #define _EXTERN extern

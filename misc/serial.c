@@ -7,7 +7,7 @@
 #include <misc_utils.h>
 #include <debug.h>
 #include <main.h>
-#include <dev_conf.h>
+#include <config.h>
 #include <heap.h>
 #include <dev_io.h>
 

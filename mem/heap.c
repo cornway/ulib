@@ -2,11 +2,22 @@
 
 #include <misc_utils.h>
 #include <arch.h>
-#include "../../common/int/mpu.h"
 #include <debug.h>
 #include <bsp_sys.h>
 
 #define MALLOC_MAGIC       0x75738910
+
+#if HAVE_LIBC_MALLOC
+#define __malloc() malloc
+#define __free() free
+#else
+#define __malloc() (NULL)
+#define __free()
+#endif
+
+#if defined(BOOT)
+static uint8_t heappool_buf[4096 * 2];
+#endif
 
 #if HEAP_TRACE
 
@@ -23,6 +34,12 @@ typedef struct {
 } mchunk_t;
 
 static int heap_size_total = -1;
+
+extern void *m_init (void *pool, uint32_t size);
+extern void *m_malloc (void *, uint32_t size);
+extern void m_free (void *, void *);
+extern void *m_exist (void *, void *);
+
 
 static inline int
 __heap_aligned (void *p)
@@ -49,6 +66,7 @@ __heap_check_margin (size_t        size)
 
 static uint8_t *heap_user_mem_ptr = NULL;
 static arch_word_t heap_user_size = 0;
+void *usrpool = NULL, *heappool = NULL;
 
 #endif
 
@@ -64,6 +82,11 @@ __heap_malloc (size_t      size, int freeable)
 
     size = size + sizeof(mchunk_t);
     size = ROUND_UP(size, sizeof(arch_word_t));
+
+    p = m_malloc(heappool, size);
+    if (p) {
+        return p;
+    }
     p = (mchunk_t *)malloc(size);
     if (!p) {
         heap_dbg("[%s] Failed to allocate [%u] bytes\n", func, size);
@@ -84,16 +107,17 @@ static inline void
 __heap_free (void *_p)
 #endif
 {
-extern void m_free (void *);
-extern void *m_exist (void *);
     mchunk_t *p = (mchunk_t *)_p;
     if (NULL == p) {
         heap_dbg("[%s] : Failed to free <%p>\n", func, p);
-        //assert(0);
+        assert(0);
     }
 #if defined(BOOT)
-    if (m_exist(p)) {
-        m_free(p);
+    if (m_exist(usrpool, p)) {
+        m_free(usrpool, p);
+        return;
+    } else if (m_exist(heappool, p)) {
+        m_free(heappool, p);
         return;
     }
 #endif
@@ -164,17 +188,17 @@ void heap_init (void)
     arch_get_stack(&sp_mem, &sp_size);
     arch_get_heap(&heap_mem, &heap_size);
 
-    dprintf("Memory :\n");
+    dprintf("Memory+ :\n");
     dprintf("stack : <0x%p> + %u bytes\n", (void *)sp_mem, sp_size);
     dprintf("heap : <0x%p> + %u bytes\n", (void *)heap_mem, heap_size);
     heap_size_total = heap_size - MPU_CACHELINE * 2;
 #ifdef BOOT
-extern void m_init (void *pool, uint32_t size);
-
     arch_get_usr_heap(&heap_user_mem_ptr, &heap_user_size);
     dprintf("user heap : <0x%p> + %u bytes\n", (void *)heap_user_mem_ptr, heap_user_size);
-    m_init(heap_user_mem_ptr, heap_user_size);
+    usrpool = m_init(heap_user_mem_ptr, heap_user_size);
+    heappool = m_init(heappool_buf, sizeof(heappool_buf));
 #endif /*BOOT*/
+    dprintf("Memory-\n");
 }
 
 void heap_deinit (void)
@@ -188,8 +212,7 @@ void heap_deinit (void)
 
 void *_heap_alloc_shared (size_t size, const char *func)
 {
-extern void *m_malloc (uint32_t size);
-    void *p = m_malloc(size);
+    void *p = m_malloc(usrpool, size);
     if (NULL == p) {
         heap_dbg("[%s] : Failed to allocate [%u] bytes\n", func, size);
     }
@@ -200,8 +223,7 @@ extern void *m_malloc (uint32_t size);
 
 void *heap_alloc_shared (size_t size)
 {
-extern void *m_malloc (uint32_t size);
-    return m_malloc(size);
+    return m_malloc(usrpool, size);
 }
 
 #endif
