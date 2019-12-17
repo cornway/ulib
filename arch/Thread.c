@@ -160,7 +160,7 @@ int t_init (
     
     (*t)->STACK = ((WORD_T)(*t) + sizeof(THREAD) + heap_size - STACK_ALLIGN) & (~(STACK_ALLIGN - 1));
     
-    (*t)->CPU_FRAME = (CPU_STACK_FRAME *)((*t)->STACK - sizeof(CPU_STACK));
+    (*t)->CPU_FRAME = (CPU_STACK_FRAME *)((*t)->STACK - sizeof(cpu_no_fpu_frame_t));
     (*t)->CPU_FRAME->callControl.EXC_RET = (WORD_T)callback;
     (*t)->CPU_FRAME->callControl.PC = (WORD_T)callback;
     (*t)->CPU_FRAME->callControl.PSR = CPU_XPSR_T_BM;

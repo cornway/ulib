@@ -187,6 +187,31 @@ int __dvprintf (const char *fmt, va_list argptr)
     return size;
 }
 
+
+
+int __dvprintf_safe (const char *fmt, va_list argptr)
+{
+    char            string[1024];
+    int size = 0;
+#if SERIAL_TX_TIMESTAMP
+    size = __insert_tx_time_ms(fmt, string, sizeof(string));
+#endif
+    size += vsnprintf(string + size, sizeof(string) - size, fmt, argptr);
+    uart_hal_submit_tx_direct(uart_get_stdio_port(), string, size);
+    return size;
+}
+
+int dprintf_safe (const char *fmt, ...)
+{
+    va_list         argptr;
+    int size;
+
+    va_start (argptr, fmt);
+    size = __dvprintf_safe(fmt, argptr);
+    va_end (argptr);
+    return size;
+}
+
 int dprintf (const char *fmt, ...)
 {
     va_list         argptr;

@@ -72,6 +72,8 @@ void serial_tickle (void);
 int dprintf (const char *fmt, ...) PRINTF;
 int aprint (const char *str, int size);
 
+int dprintf_safe (const char *fmt, ...) PRINTF;
+
 extern int32_t g_serial_rx_eof;
 
 #endif /*BSP_INDIR_API*/

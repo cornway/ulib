@@ -6,6 +6,7 @@ Q ?= @
 include $(TOP)/configs/$(PLATFORM)/boot.mk
 
 CCFLAGS = $(CCFLAGS_MK)
+LDFLAGS = $(LDFLAGS_MK)
 CCDEFS = $(CCDEFS_MK)
 
 CCINC = -I$(TOP)/common/Utilities/JPEG \
@@ -89,6 +90,20 @@ endif
 
 	$(Q)mv ./*.o ./.output/obj/
 	$(Q)cp -r ./.output/obj/*.o $(OUT)
+
+ulib/modules :
+	@echo "Compiling [ $(MODULE).so ]..."
+
+	$(Q)mkdir -p ./.output/$(MODULE)
+	$(Q)mkdir -p ./.output/$(MODULE)/lib
+	$(Q)cp -r ./$(MODULE)/* ./.output/$(MODULE)
+	
+	$(Q)$(CC) $(CCSHARED) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./.output/$(MODULE)/*.c
+	$(Q)cp ./*.o ./.output/$(MODULE)/lib
+	$(Q)$(CC) $(LDSHARED) $(LDFLAGS) -o ./.output/$(MODULE)/lib/$(MODULE).so ./.output/$(MODULE)/lib/*.o
+
+ulib/modules/clean :
+	$(Q)rm -rf ./.output/$(MODULE)
 
 clean :
 	$(Q)rm -rf ./.output
