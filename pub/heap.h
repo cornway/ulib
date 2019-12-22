@@ -25,7 +25,7 @@ void heap_init (void);
 void heap_deinit (void);
 size_t heap_avail (void);
 
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
 
 typedef struct bsp_heap_api_s {
      void *(*malloc) (uint32_t size, const char *func);
@@ -53,7 +53,7 @@ void _heap_free (void *p, const char *func);
 #define heap_api_malloc(api, size) (api)->malloc(size, __func__)
 #define heap_api_free(api, p) (api)->free(p, __func__)
 
-#else /*HEAP_TRACE*/
+#else /*HAVE_HEAP_TRACE*/
 
 typedef struct bsp_heap_api_s {
      void *(*malloc) (uint32_t size);
@@ -75,6 +75,6 @@ void heap_free (void *p);
 #define heap_api_malloc(api, size) (api)->malloc(size)
 #define heap_api_free(api, p) (api)->free(p)
 
-#endif /*#HEAP_TRACE*/
+#endif /*#HAVE_HEAP_TRACE*/
 
 #endif /*__HEAP_H__*/

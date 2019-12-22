@@ -1,8 +1,6 @@
 #ifndef __HDMI_PUB_H__
 #define __HDMI_PUB_H__
 
-#if defined(USE_LCD_HDMI)
-
 #include <stdint.h>
 
 #define EDID_SEG_SIZE 0x100
@@ -58,8 +56,6 @@ typedef struct SCREEN_Std_Format_s {
 } SCREEN_Std_FormatTypeDef;
 
 int hdmi_parse_edid (hdmi_timing_t *timing, hdmi_edid_seg_t *edid, int size);
-
-#endif /*defined(USE_LCD_HDMI)*/
 
 #endif /*__HDMI_PUB_H__*/
 

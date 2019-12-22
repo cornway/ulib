@@ -29,17 +29,7 @@ typedef struct bsp_debug_api_s {
     int (*dprintf) (const char *, ...);
 } bsp_debug_api_t;
 
-#ifndef DEBUG_SERIAL
-#define DEBUG_SERIAL 1
-#endif
-
-#if DEBUG_SERIAL
-
 #define PRINTF_SERIAL  1
-
-#ifndef SERIAL_TSF
-#define SERIAL_TSF 1
-#endif
 
 #define BSP_DBG_API(func) ((bsp_debug_api_t *)(g_bspapi->dbg))->func
 
@@ -79,17 +69,6 @@ extern int32_t g_serial_rx_eof;
 #endif /*BSP_INDIR_API*/
 
 int dvprintf (const char *fmt, va_list argptr);
-
-#else /*DEBUG_SERIAL*/
-
-static inline void uart_hal_tty_init (void) {}
-static inline void serial_putc (char c) {}
-static inline char serial_getc (void) {return 0;}
-static inline void serial_send_buf (const void *data, size_t cnt){}
-static inline void serial_flush (void){}
-
-static inline int dprintf (const char *fmt, ...){return 0;}
-static inline int dvprintf (const char *fmt, va_list argptr) {return 0;}
 
 #endif /*DEBUG_SERIAL*/
 

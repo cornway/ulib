@@ -19,7 +19,7 @@
 static uint8_t heappool_buf[4096 * 2];
 #endif
 
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
 
 #define heap_dbg(args...) \
     dprintf("[HEAP DEBUG] " args)
@@ -70,7 +70,7 @@ void *usrpool = NULL, *heappool = NULL;
 
 #endif
 
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
 static inline void *
 __heap_malloc (size_t      size, int freeable, const char *func)
 #else
@@ -99,7 +99,7 @@ __heap_malloc (size_t      size, int freeable)
     return (void *)(p + 1);
 }
 
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
 static inline void
 __heap_free (void *_p, const char *func)
 #else
@@ -136,7 +136,7 @@ __heap_free (void *_p)
     free(p);
 }
 
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
 static inline void *
 __heap_realloc (void *x, size_t size, const char *func)
 #else
@@ -157,7 +157,7 @@ __heap_realloc (void *x, size_t size)
             __func__, size, heap_size_total);
     }
     assert(p->freeable);
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
     __heap_free(x, func);
     return __heap_malloc(size, 1, func);
 #else
@@ -208,7 +208,7 @@ void heap_deinit (void)
 
 #ifdef BOOT
 
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
 
 void *_heap_alloc_shared (size_t size, const char *func)
 {
@@ -230,7 +230,7 @@ void *heap_alloc_shared (size_t size)
 
 #else /*BOOT*/
 
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
 void *_heap_alloc_shared (size_t size, const char *func)
 {
     __heap_check_margin(size);
@@ -242,7 +242,7 @@ void *heap_alloc_shared (size_t size)
     __heap_check_margin(size);
     return __heap_malloc(size, 1);
 }
-#endif /*HEAP_TRACE*/
+#endif /*HAVE_HEAP_TRACE*/
 
 #endif /*BOOT*/
 
@@ -251,7 +251,7 @@ size_t heap_avail (void)
     return (heap_size_total - sizeof(mchunk_t));
 }
 
-#if HEAP_TRACE
+#if HAVE_HEAP_TRACE
 
 void *_heap_malloc (size_t  size, const char *func)
 {
@@ -277,7 +277,7 @@ void _heap_free (void *p, const char *func)
     __heap_free(p, func);
 }
 
-#else /*HEAP_TRACE*/
+#else /*HAVE_HEAP_TRACE*/
 
 void *heap_malloc (size_t  size)
 {
@@ -303,4 +303,4 @@ void heap_free (void *p)
     __heap_free(p);
 }
 
-#endif /*HEAP_TRACE*/
+#endif /*HAVE_HEAP_TRACE*/
