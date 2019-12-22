@@ -3,7 +3,7 @@ OUT ?= $(OUT)
 TOP ?= $(TOP)
 Q ?= @
 
-include $(TOP)/configs/$(PLATFORM)/boot.mk
+include $(TOP)/boot.mk
 
 ARMV7 := armv7
 
@@ -13,11 +13,10 @@ arch :
 	@mkdir -p ./.output
 	@mkdir -p ./.output/obj
 
-ifeq ($(MCPUNAME_MK), armv7)
+ifeq ($(MCPUNAME_MK), armv7-m)
 	@cp ./Arm/m7/src/gcc/* ./.output/
 else
 	@echo "Unknown arch model [$(MCPUNAME_MK)]"
-	exit -1;
 endif
 	$(Q) $(AS) $(ASFLAGS_MK) -c ./.output/*.s
 

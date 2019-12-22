@@ -49,8 +49,6 @@ const char *strchrnul (const char *str, int ch)
 }
 #endif /*strchrnul*/
 
-#if defined(USE_LCD_HDMI)
-
 #define CM_2_MM(cm)                             ((cm) * 10)
 #define CM_2_IN(cm)                             ((cm) * 0.3937f)
 
@@ -1520,7 +1518,7 @@ int hdmi_parse_edid (hdmi_timing_t *timing, hdmi_edid_seg_t *edid, int size)
     return 0;
 }
 
-#endif /*defined(USE_LCD_HDMI)*/
+
 
 #endif
 

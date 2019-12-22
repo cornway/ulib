@@ -3,7 +3,7 @@ TOP ?= $(TOP)
 OUT ?= $(OUT)
 Q ?= @
 
-include $(TOP)/configs/$(PLATFORM)/boot.mk
+include $(TOP)/boot.mk
 
 CCFLAGS = $(CCFLAGS_MK)
 LDFLAGS = $(LDFLAGS_MK)

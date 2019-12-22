@@ -13,14 +13,9 @@
 #include <debug.h>
 #include <heap.h>
 
-#ifndef DEVIO_READONLY
-#warning "DEVIO_READONLY is undefined, using TRUE"
-#define DEVIO_READONLY 1
-#endif
-
-#ifndef MAX_HANDLES
-#warning "MAX_HANDLES is undefined, using 3"
-#define MAX_HANDLES    6
+#ifndef MAX_OPEN_FILES
+#warning "MAX_OPEN_FILES is undefined, using 3"
+#define MAX_OPEN_FILES    3
 #endif
 
 static FATFS DEV_Fs ALIGN(8);
@@ -41,7 +36,7 @@ typedef struct {
     FILINFO fn;
 } ALIGN(8) dirhandle_t;
 
-static fobjhdl_t *handles[MAX_HANDLES * 2];
+static fobjhdl_t *handles[MAX_OPEN_FILES * 2];
 
 static int _devio_mount (char *path);
 static void _devio_unmount (char *path);
@@ -75,7 +70,7 @@ static inline void *allochandle (fobjhdl_t **hdls, int *num, int dir)
     fobjhdl_t *h;
     *num = -1;
 
-    for (i=0 ; i<MAX_HANDLES * 2; i++) {
+    for (i=0 ; i<MAX_OPEN_FILES * 2; i++) {
         h = hdls[i];
         if (NULL == h) {
             h = heap_malloc(memsize);
@@ -208,12 +203,10 @@ int d_open (const char *path, int *hndl, char const * att)
             extend = d_false;
             att = NULL;
         break;
-#if !DEVIO_READONLY
         case 'w':
             mode |= FA_WRITE | FA_OPEN_EXISTING;
             att = NULL;
         break;
-#endif
         case '+':
             att++;
             extend = d_false;
@@ -347,7 +340,6 @@ char d_getc (int h)
 
 int d_write (int handle, PACKED const void *src, int count)
 {
-#if !DEVIO_READONLY
     PACKED const char *data;
     UINT done;
     FRESULT res = FR_NOT_READY;
@@ -361,19 +353,14 @@ int d_write (int handle, PACKED const void *src, int count)
         return FR_2_ERR(res);
     }
     return done;
-#else
-    return count;
-#endif
 }
 
 int d_mkdir (const char *path)
 {
-#if !DEVIO_READONLY
     FRESULT res = f_mkdir(path);
     if ((res != FR_OK) && (res != FR_EXIST)) {
         return FR_2_ERR(res);
     }
-#endif
     return 0;
 }
 
