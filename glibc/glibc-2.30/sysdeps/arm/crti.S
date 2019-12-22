@@ -40,6 +40,7 @@
 
 /* Always build .init and .fini sections in ARM mode.  */
 #define NO_THUMB
+#undef NO_THUMB
 #include <libc-symbols.h>
 #include <sysdep.h>
 
@@ -67,6 +68,7 @@ call_weak_fn:
 	add r3, pc, r3
 	ldr r2, [r3, r2]
 	cmp r2, #0
+    it  eq
 	bxeq lr
 	b PREINIT_FUNCTION
 	.p2align 2

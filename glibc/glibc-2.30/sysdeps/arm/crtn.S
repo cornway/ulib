@@ -35,6 +35,7 @@
 
 /* Always build .init and .fini sections in ARM mode.  */
 #define NO_THUMB
+#undef NO_THUMB
 #include <sysdep.h>
 
 /* crtn.S puts function epilogues in the .init and .fini sections

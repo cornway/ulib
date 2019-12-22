@@ -18,6 +18,7 @@
 
 /* Thumb requires excessive IT insns here.  */
 #define NO_THUMB
+#undef NO_THUMB
 #include <sysdep.h>
 
 	.text
@@ -32,9 +33,12 @@ ENTRY(memset)
 
 1:
 	tst	r3, #3		@ aligned yet?
+	it 		ne
 	strbne	r1, [r3], #1
+	it 		ne
 	subne	r2, r2, #1
-	bne	1b
+	it 		ne
+	bne		1b
 
 	and	r1, r1, #255	@ clear any sign bits
 	orr	r1, r1, r1, lsl $8
@@ -43,25 +47,41 @@ ENTRY(memset)
 
 1:
 	subs	r2, r2, #8
+	it 		cs
 	stmiacs	r3!, {r1, ip}	@ store up to 32 bytes per loop iteration
+	it 		cs
 	subscs	r2, r2, #8
+	it 		cs
 	stmiacs	r3!, {r1, ip}
+	it 		cs
 	subscs	r2, r2, #8
+	it 		cs
 	stmiacs	r3!, {r1, ip}
+	it 		cs
 	subscs	r2, r2, #8
+	it 		cs
 	stmiacs	r3!, {r1, ip}
+	it 		cs
 	bcs	1b
 
 	and	r2, r2, #7
 2:
 	subs	r2, r2, #1	@ store up to 4 bytes per loop iteration
+	it 		cs
 	strbcs	r1, [r3], #1
+	it 		cs
 	subscs	r2, r2, #1
+	it 		cs
 	strbcs	r1, [r3], #1
+	it 		cs
 	subscs	r2, r2, #1
+	it 		cs
 	strbcs	r1, [r3], #1
+	it 		cs
 	subscs	r2, r2, #1
+	it 		cs
 	strbcs	r1, [r3], #1
+	it 		cs
 	bcs	2b
 
 	DO_RET(lr)

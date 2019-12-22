@@ -19,6 +19,7 @@
 
 /* Thumb requires excessive IT insns here.  */
 #define NO_THUMB
+#undef NO_THUMB
 #include <sysdep.h>
 #include <arm-features.h>
 
@@ -28,11 +29,14 @@
 #if (!defined (__ARM_ARCH_2__) && !defined (__ARM_ARCH_3__) \
      && !defined (__ARM_ARCH_3M__) && !defined (__ARM_ARCH_4__) \
      && !defined (__ARM_ARCH_4T__) && !defined (__ARM_ARCH_5__) \
-     && !defined (__ARM_ARCH_5T__))
+     && !defined (__ARM_ARCH_5T__)) && !defined (__ARM_ARCH_7M__) \
+	 && !defined (__ARM_ARCH_7EM__)
 #define PLD(code...)    code
 #else
 #define PLD(code...)
 #endif
+
+#define ARM_ALWAYS_BX
 
 /*
  * This can be used to enable code to cacheline align the source pointer.
@@ -68,11 +72,14 @@ ENTRY(memcpy)
 		cfi_remember_state
 
 		subs	r2, r2, #4
+		it 		lt
 		blt	8f
 		ands	ip, r0, #3
 	PLD(	pld	[r1, #0]		)
+		it 	ne
 		bne	9f
 		ands	ip, r1, #3
+		it 	ne
 		bne	10f
 
 1:		subs	r2, r2, #(28)
@@ -82,6 +89,7 @@ ENTRY(memcpy)
 		cfi_rel_offset (r6, 4)
 		cfi_rel_offset (r7, 8)
 		cfi_rel_offset (r8, 12)
+		it 	lt
 		blt	5f
 
 	CALGN(	ands	ip, r1, #31		)
@@ -108,6 +116,7 @@ ENTRY(memcpy)
 4:		ldmia	r1!, {r3, r4, r5, r6, r7, r8, ip, lr}
 		subs	r2, r2, #32
 		stmia	r0!, {r3, r4, r5, r6, r7, r8, ip, lr}
+		it 		ge
 		bge	3b
 	PLD(	cmn	r2, #96			)
 	PLD(	bge	4b			)
@@ -119,11 +128,13 @@ ENTRY(memcpy)
 		addne	pc, pc, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
 		b	7f
 #else
+		it  eq
 		beq	7f
 		push	{r10}
 		cfi_adjust_cfa_offset (4)
 		cfi_rel_offset (r10, 0)
-0:		add	r10, pc, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
+		add r10, pc
+0:		add	r10, r10, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
 		/* If alignment is not perfect, then there will be some
 		   padding (nop) instructions between this BX and label 6.
 		   The computation above assumed that two instructions
@@ -152,7 +163,8 @@ ENTRY(memcpy)
 		add	pc, pc, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
 		nop
 #else
-0:		add	r10, pc, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
+		add r10, pc
+0:		add	r10, r10, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
 		/* If alignment is not perfect, then there will be some
 		   padding (nop) instructions between this BX and label 66.
 		   The computation above assumed that two instructions
@@ -193,11 +205,17 @@ ENTRY(memcpy)
 		cfi_restore (r8)
 
 8:		movs	r2, r2, lsl #31
+		it 		ne
 		ldrbne	r3, [r1], #1
+		it 		cs
 		ldrbcs	r4, [r1], #1
+		it 		cs
 		ldrbcs	ip, [r1]
+		it 		ne
 		strbne	r3, [r0], #1
+		it 		cs
 		strbcs	r4, [r0], #1
+		it 		cs
 		strbcs	ip, [r0]
 
 #if ((defined (__ARM_ARCH_4T__) && defined(__THUMB_INTERWORK__)) \
@@ -215,27 +233,36 @@ ENTRY(memcpy)
 
 9:		rsb	ip, ip, #4
 		cmp	ip, #2
+		it 		gt
 		ldrbgt	r3, [r1], #1
+		it 		ge
 		ldrbge	r4, [r1], #1
 		ldrb	lr, [r1], #1
+		it 		gt
 		strbgt	r3, [r0], #1
+		it 		ge
 		strbge	r4, [r0], #1
 		subs	r2, r2, ip
 		strb	lr, [r0], #1
+		it 		lt
 		blt	8b
 		ands	ip, r1, #3
-		beq	1b
+		it 		eq
+		beq		1b
 
 10:		bic	r1, r1, #3
 		cmp	ip, #2
 		ldr	lr, [r1], #4
+		it 	eq
 		beq	17f
+		it 	gt
 		bgt	18f
 
 
 		.macro	forward_copy_shift pull push
 
 		subs	r2, r2, #28
+		it 		lt
 		blt	14f
 
 	CALGN(	ands	ip, r1, #31		)
@@ -280,6 +307,7 @@ ENTRY(memcpy)
 		mov	ip, ip, PULL #\pull
 		orr	ip, ip, lr, PUSH #\push
 		stmia	r0!, {r3, r4, r5, r6, r7, r8, r10, ip}
+		it 		ge
 		bge	12b
 	PLD(	cmn	r2, #96			)
 	PLD(	bge	13b			)
@@ -293,13 +321,15 @@ ENTRY(memcpy)
 		cfi_restore (r10)
 
 14:		ands	ip, r2, #28
-		beq	16f
+		it 		eq
+		beq		16f
 
 15:		mov	r3, lr, PULL #\pull
 		ldr	lr, [r1], #4
 		subs	ip, ip, #4
 		orr	r3, r3, lr, PUSH #\push
 		str	r3, [r0], #4
+		it 		gt
 		bgt	15b
 	CALGN(	cmp	r2, #0			)
 	CALGN(	bge	11b			)

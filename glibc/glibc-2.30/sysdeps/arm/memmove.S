@@ -19,6 +19,7 @@
 
 /* Thumb requires excessive IT insns here.  */
 #define NO_THUMB
+#undef NO_THUMB
 #include <sysdep.h>
 #include <arm-features.h>
 
@@ -28,11 +29,14 @@
 #if (!defined (__ARM_ARCH_2__) && !defined (__ARM_ARCH_3__) \
      && !defined (__ARM_ARCH_3M__) && !defined (__ARM_ARCH_4__) \
      && !defined (__ARM_ARCH_4T__) && !defined (__ARM_ARCH_5__) \
-     && !defined (__ARM_ARCH_5T__))
+     && !defined (__ARM_ARCH_5T__)) && !defined (__ARM_ARCH_7M__) \
+	 && !defined (__ARM_ARCH_7EM__)
 #define PLD(code...)    code
 #else
 #define PLD(code...)
 #endif
+
+#define ARM_ALWAYS_BX
 
 /*
  * This can be used to enable code to cacheline align the source pointer.
@@ -68,6 +72,7 @@
 ENTRY(memmove)
 
 		subs	ip, r0, r1
+		it		hi
 		cmphi	r2, ip
 #if !IS_IN (libc)
 		bls	memcpy
@@ -88,8 +93,10 @@ ENTRY(memmove)
 		blt	8f
 		ands	ip, r0, #3
 	PLD(	pld	[r1, #-4]		)
+		it  ne 
 		bne	9f
 		ands	ip, r1, #3
+		it  ne
 		bne	10f
 
 1:		subs	r2, r2, #(28)
@@ -99,6 +106,7 @@ ENTRY(memmove)
 		cfi_rel_offset (r6, 4)
 		cfi_rel_offset (r7, 8)
 		cfi_rel_offset (r8, 12)
+		it  lt
 		blt	5f
 
 	CALGN(	ands	ip, r1, #31		)
@@ -132,14 +140,17 @@ ENTRY(memmove)
 		rsb	ip, ip, #32
 #ifndef ARM_ALWAYS_BX
 		/* C is always clear here.  */
+		it  	ne
 		addne	pc, pc, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
 		b	7f
 #else
+		it  eq
 		beq	7f
 		push	{r10}
 		cfi_adjust_cfa_offset (4)
 		cfi_rel_offset (r10, 0)
-0:		add	r10, pc, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
+		add r10, pc
+0:		add	r10, r10, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
 		/* If alignment is not perfect, then there will be some
 		   padding (nop) instructions between this BX and label 6.
 		   The computation above assumed that two instructions
@@ -168,7 +179,8 @@ ENTRY(memmove)
 		add	pc, pc, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
 		nop
 #else
-0:		add	r10, pc, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
+		add r10, pc
+0:		add	r10, r10, ip, lsl #(ARM_BX_ALIGN_LOG2 - 2)
 		/* If alignment is not perfect, then there will be some
 		   padding (nop) instructions between this BX and label 66.
 		   The computation above assumed that two instructions
@@ -209,11 +221,17 @@ ENTRY(memmove)
 		cfi_restore (r8)
 
 8:		movs	r2, r2, lsl #31
+		it  ne
 		ldrbne	r3, [r1, #-1]!
+		it  cs
 		ldrbcs	r4, [r1, #-1]!
+		it  cs
 		ldrbcs	ip, [r1, #-1]
+		it  ne
 		strbne	r3, [r0, #-1]!
+		it  cs
 		strbcs	r4, [r0, #-1]!
+		it  cs
 		strbcs	ip, [r0, #-1]
 
 #if ((defined (__ARM_ARCH_4T__) && defined (__THUMB_INTERWORK__)) \
@@ -230,28 +248,37 @@ ENTRY(memmove)
 		cfi_restore_state
 
 9:		cmp	ip, #2
+		it  gt
 		ldrbgt	r3, [r1, #-1]!
+		it  ge
 		ldrbge	r4, [r1, #-1]!
 		ldrb	lr, [r1, #-1]!
+		it  	gt
 		strbgt	r3, [r0, #-1]!
+		it  	ge
 		strbge	r4, [r0, #-1]!
 		subs	r2, r2, ip
 		strb	lr, [r0, #-1]!
+		it  lt
 		blt	8b
 		ands	ip, r1, #3
+		it  eq
 		beq	1b
 
 10:		bic	r1, r1, #3
 		cmp	ip, #2
 		ldr	r3, [r1, #0]
+		it  eq
 		beq	17f
+		it lt
 		blt	18f
 
 
 		.macro	backward_copy_shift push pull
 
 		subs	r2, r2, #28
-		blt	14f
+		it 		lt
+		blt		14f
 
 	CALGN(	ands	ip, r1, #31		)
 	CALGN(	rsb	ip, ip, #32		)
@@ -295,6 +322,7 @@ ENTRY(memmove)
 		mov     r4, r4, PUSH #\push
 		orr     r4, r4, r3, PULL #\pull
 		stmdb   r0!, {r4 - r8, r10, ip, lr}
+		it  	ge
 		bge	12b
 	PLD(	cmn	r2, #96			)
 	PLD(	bge	13b			)
@@ -308,13 +336,15 @@ ENTRY(memmove)
 		cfi_restore (r10)
 
 14:		ands	ip, r2, #28
-		beq	16f
+		it  	eq
+		beq		16f
 
 15:		mov     lr, r3, PUSH #\push
 		ldr	r3, [r1, #-4]!
 		subs	ip, ip, #4
 		orr	lr, lr, r3, PULL #\pull
 		str	lr, [r0, #-4]!
+		it 	gt
 		bgt	15b
 	CALGN(	cmp	r2, #0			)
 	CALGN(	bge	11b			)

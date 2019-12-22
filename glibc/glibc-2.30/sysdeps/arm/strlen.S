@@ -18,6 +18,7 @@
 
 /* Thumb requires excessive IT insns here.  */
 #define NO_THUMB
+#undef NO_THUMB
 #include <sysdep.h>
 
 /* size_t strlen(const char *S)
@@ -33,43 +34,63 @@ ENTRY(strlen)
 	ldr     r2, [r1], $4            @ get the first word
 	ands    r3, r0, $3              @ how many bytes are duff?
 	rsb     r0, r3, $0              @ get - that number into counter.
+	it 		eq
 	beq     Laligned                @ skip into main check routine if no
 					@ more
 #ifdef __ARMEB__
 	orr     r2, r2, $0xff000000     @ set this byte to non-zero
 	subs    r3, r3, $1              @ any more to do?
+	it 		gt
 	orrgt   r2, r2, $0x00ff0000     @ if so, set this byte
 	subs    r3, r3, $1              @ more?
 	orrgt   r2, r2, $0x0000ff00     @ then set.
 #else
 	orr     r2, r2, $0x000000ff     @ set this byte to non-zero
 	subs    r3, r3, $1              @ any more to do?
+	it 		gt
 	orrgt   r2, r2, $0x0000ff00     @ if so, set this byte
 	subs    r3, r3, $1              @ more?
+	it 		gt
 	orrgt   r2, r2, $0x00ff0000     @ then set.
 #endif
 Laligned:				@ here, we have a word in r2.  Does it
 	tst     r2, $0x000000ff         @ contain any zeroes?
+	it		ne
 	tstne   r2, $0x0000ff00         @
+	it		ne
 	tstne   r2, $0x00ff0000         @
+	it		ne
 	tstne   r2, $0xff000000         @
+	it		ne
 	addne   r0, r0, $4              @ if not, the string is 4 bytes longer
+	it		ne
 	ldrne   r2, [r1], $4            @ and we continue to the next word
+	it		ne
 	bne     Laligned                @
 Llastword:				@ drop through to here once we find a
 #ifdef __ARMEB__
 	tst     r2, $0xff000000         @ word that has a zero byte in it
+	it 		ne
 	addne   r0, r0, $1              @
+	it		ne
 	tstne   r2, $0x00ff0000         @ and add up to 3 bytes on to it
+	it		ne
 	addne   r0, r0, $1              @
+	it		ne
 	tstne   r2, $0x0000ff00         @ (if first three all non-zero, 4th
+	it		ne
 	addne   r0, r0, $1              @  must be zero)
 #else
 	tst     r2, $0x000000ff         @ word that has a zero byte in it
+	it 		ne
 	addne   r0, r0, $1              @
+	it		ne
 	tstne   r2, $0x0000ff00         @ and add up to 3 bytes on to it
+	it		ne
 	addne   r0, r0, $1              @
+	it		ne
 	tstne   r2, $0x00ff0000         @ (if first three all non-zero, 4th
+	it		ne
 	addne   r0, r0, $1              @  must be zero)
 #endif
 	DO_RET(lr)

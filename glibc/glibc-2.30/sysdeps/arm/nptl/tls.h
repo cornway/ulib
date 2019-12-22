@@ -34,6 +34,8 @@
 
 #ifndef __ASSEMBLER__
 
+extern void *__builtin_thread_pointer (void);
+
 /* The TP points to the start of the thread blocks.  */
 # define TLS_DTV_AT_TP	1
 # define TLS_TCB_AT_TP	0

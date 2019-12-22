@@ -18,6 +18,8 @@
 
 /* ??? Needs more rearrangement for the LDM to handle thumb mode.  */
 #define NO_THUMB
+#undef NO_THUMB
+
 #include <sysdep.h>
 #include <libc-symbols.h>
 
@@ -146,7 +148,10 @@ _dl_runtime_profile:
 	@ get arguments and return address back
 	add	sp, sp, #16
 	cfi_adjust_cfa_offset (-16)
-	ldmia	sp, {r0-r3,sp,lr}
+	/* FIXME !!! */
+	mrs 	r0, msp
+	ldmia	r0, {r0-r3,r9,lr}
+	msr		msp, r9
 	cfi_adjust_cfa_offset (-200)
 
 	@ jump to the newly found address
@@ -171,8 +176,8 @@ _dl_runtime_profile:
 	cfi_def_cfa_register (r7)
 	cfi_adjust_cfa_offset (56)
 	sub	sp, sp, ip
-	bic	sp, sp, #7
-
+	bic	r9, r9, #7
+	msr	msp, r9
 	@ Save the _dl_profile_fixup result around the call to memcpy.
 	str	r0, [r7, #264]
 

@@ -17,6 +17,7 @@
 
 /* ??? Needs more rearrangement for the LDM to handle thumb mode.  */
 #define NO_THUMB
+#undef NO_THUMB
 #include <sysdep.h>
 #include <rtld-global-offsets.h>
 
@@ -79,7 +80,9 @@ ENTRY(__setcontext)
 	ldmia   r14, {r0-r12}
 	ldr     r13, [r14, #(MCONTEXT_ARM_SP - MCONTEXT_ARM_R0)]
 	add     r14, r14, #(MCONTEXT_ARM_LR - MCONTEXT_ARM_R0)
-	ldmia   r14, {r14, pc}
+	/* FIXME!!! */
+	ldmia   r14, {r14}
+	ldmia   r14, {pc}
 
 END(setcontext)
 weak_alias(__setcontext, setcontext)
