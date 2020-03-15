@@ -6,8 +6,6 @@
 #include <misc_utils.h>
 #include <input_main.h>
 #include <debug.h>
-#include "stm32f769i_discovery_ts.h"
-
 
 
 #define TS_DEF_CD_COUNT 0
@@ -60,15 +58,16 @@ void ts_init_states (void)
 
 static void ts_read_status (ts_status_t *ts_status)
 {
-    TS_StateTypeDef  TS_State;
     uint8_t state = 0;
-
-    if (BSP_TS_GetState(&TS_State) != TS_OK) {
-        input_fatal("BSP_TS_GetState != TS_OK\n");
-    }
+    uint32_t x, y;
 
     ts_status->status = TOUCH_IDLE;
-    state = ts_states_map[ts_prev_state][TS_State.touchDetected ? TS_PRESS_ON : TS_PRESS_OFF];
+    state = ts_hal_get_state(&x, &y);
+
+    if (x < 0 || y < 0) {
+        input_fatal("BSP_TS_GetState != TS_OK\n");
+    }
+    state = ts_states_map[ts_prev_state][state ? TS_PRESS_ON : TS_PRESS_OFF];
     switch (state) {
         case TS_IDLE:
             if (ts_state_cooldown_cnt) {
@@ -80,8 +79,8 @@ static void ts_read_status (ts_status_t *ts_status)
             break;
         case TS_CLICK:
             ts_status->status = TOUCH_PRESSED;
-            ts_status->x = TS_State.touchX[0];
-            ts_status->y = TS_State.touchY[0];
+            ts_status->x = x;
+            ts_status->y = y;
             break;
         case TS_RELEASED:
             ts_status->status = TOUCH_RELEASED;

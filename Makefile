@@ -5,20 +5,8 @@ Q ?= @
 
 include $(TOP)/boot.mk
 
-CCFLAGS = $(CCFLAGS_MK)
-LDFLAGS = $(LDFLAGS_MK)
-CCDEFS = $(CCDEFS_MK)
-
-CCINC = -I$(TOP)/common/Utilities/JPEG \
-		-I$(TOP)/ulib/boot/inc \
-		-I$(TOP)/ulib/gui \
-		-I$(TOP)/ulib/arch \
-		-I$(TOP)/ulib/pub \
-		-I$(TOP)/configs/$(PLATFORM) \
-		-I$(TOP)/main/Inc \
-		$(HALINC_MK)
-
-CCINC += -I$(TOP)/ulib/io/fs/$(IOFS_MK)/src
+CCINC += $$CINC_HAL $$CINC \
+		-I$(TOP)/ulib/io/fs/$(FS_SOURCE)/src/
 
 OUT_OBJ := .output/obj
 
@@ -51,7 +39,7 @@ ulib/module :
 	$(Q)mkdir -p ./.output/$(MODULE)
 	$(Q)cp -r ./$(MODULE)/* ./.output/$(MODULE)
 	
-	$(Q)$(CC) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./.output/$(MODULE)/*.c
+	$(Q)$(CC) $(CFLAGS) $(CCINC) $(CDEFS) -c ./.output/$(MODULE)/*.c
 
 define module/compile
 $(MAKE) ulib/module TOP=$(TOP) PLATFORM=$(PLATFORM) OUT=./$(OUT_OBJ) Q= -C ./
@@ -82,10 +70,10 @@ endif
 	$(module/compile) MODULE=drv
 	$(module/compile) MODULE=io
 ifeq ($(HAVE_USB), 1)
-	$(module/compile) MODULE=usb/$(MACHNAME_MK)
+	$(module/compile) MODULE=usb/$(TGT_MACH_DIR)
 endif
 ifeq ($(HAVE_LCD), 1)
-	$(module/compile) MODULE=screen/$(MACHNAME_MK)
+	$(module/compile) MODULE=screen/$(TGT_MACH_DIR)
 endif
 
 	$(Q)mv ./*.o ./.output/obj/
@@ -98,9 +86,9 @@ ulib/modules :
 	$(Q)mkdir -p ./.output/$(MODULE)/lib
 	$(Q)cp -r ./$(MODULE)/* ./.output/$(MODULE)
 	
-	$(Q)$(CC) $(CCSHARED) $(CCFLAGS) $(CCINC) $(CCDEFS) -c ./.output/$(MODULE)/*.c
+	$(Q)$(CC) -fpic $(CFLAGS) $(CCINC) $(CDEFS) -c ./.output/$(MODULE)/*.c
 	$(Q)cp ./*.o ./.output/$(MODULE)/lib
-	$(Q)$(CC) $(LDSHARED) $(LDFLAGS) -o ./.output/$(MODULE)/lib/$(MODULE).so ./.output/$(MODULE)/lib/*.o
+	$(Q)$(CC) -shared $(LDFLAGS) -o ./.output/$(MODULE)/lib/$(MODULE).so ./.output/$(MODULE)/lib/*.o
 
 ulib/modules/clean :
 	$(Q)rm -rf ./.output/$(MODULE)
@@ -108,5 +96,5 @@ ulib/modules/clean :
 clean :
 	$(Q)rm -rf ./.output
 
-	$(MAKE) clean TOP=$(TOP) -C ./io/fs/
-	$(MAKE) clean TOP=$(TOP) -C ./arch/
+	@$(MAKE) clean TOP=$(TOP) -C ./io/fs/
+	@$(MAKE) clean TOP=$(TOP) -C ./arch/

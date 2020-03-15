@@ -5,7 +5,7 @@
 
 #include <misc_utils.h>
 #include <dev_io.h>
-#include <bconf.h>
+#include "inc/bconf.h"
 #include <audio_main.h>
 
 #define SFX_MAX_NAME 8

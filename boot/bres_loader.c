@@ -6,7 +6,7 @@
 
 #include <misc_utils.h>
 #include <dev_io.h>
-#include <bconf.h>
+#include "inc/bconf.h"
 
 typedef struct {
     char titlepic[32];

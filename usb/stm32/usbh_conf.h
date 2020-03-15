@@ -48,9 +48,9 @@
 #define __USBH_CONF_H
 
 /* Includes ----------------------------------------------------------------- */
-#include "stm32f7xx.h"
 #include <stdlib.h>
 #include <string.h>
+#include "stm32f7xx.h"
 
 #include <config.h>
 

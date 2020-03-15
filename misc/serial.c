@@ -6,7 +6,6 @@
 #include <tim.h>
 #include <misc_utils.h>
 #include <debug.h>
-#include <main.h>
 #include <config.h>
 #include <heap.h>
 #include <dev_io.h>
@@ -37,6 +36,8 @@ typedef struct {
 } streambuf_t;
 
 static streambuf_t streambuf[STREAM_BUFCNT];
+static uint8_t streambuf_id = 0;
+
 #ifndef SERIAL_TX_TIMESTAMP
 #define SERIAL_TX_TIMESTAMP 1
 #endif
@@ -79,7 +80,7 @@ __insert_tx_time_ms (const char *fmt, char *buf, int max)
 #endif /*SERIAL_TX_TIMESTAMP*/
 
 #if SERIAL_TX_BUFFERIZED
-static void __submit_to_hw (uart_desc_t *uart_desc, streambuf_t *stbuf)
+static void __submit_to_hw (void *uart_desc, streambuf_t *stbuf)
 {
     if (uart_hal_submit_tx_data(uart_desc, stbuf->data, stbuf->bufposition) < 0) {
         fatal_error("%s() : fail\n");
@@ -98,9 +99,9 @@ static void __buf_append_data (streambuf_t *stbuf, const void *data, size_t size
     stbuf->bufposition += size;
 }
 
-int serial_submit_tx_data (uart_desc_t *uart_desc, const void *data, size_t size, d_bool flush)
+int serial_submit_tx_data (void *uart_desc, const void *data, size_t size, d_bool flush)
 {
-    streambuf_t *active_stream = &streambuf[uart_desc->tx_id & STREAM_BUFCNT_MS];
+    streambuf_t *active_stream = &streambuf[streambuf_id & STREAM_BUFCNT_MS];
 
     if (size > STREAM_BUFSIZE) {
         size = STREAM_BUFSIZE;
@@ -112,7 +113,7 @@ int serial_submit_tx_data (uart_desc_t *uart_desc, const void *data, size_t size
 
     if (flush || size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
         __submit_to_hw(uart_desc, active_stream);
-        active_stream = &streambuf[(++uart_desc->tx_id) & STREAM_BUFCNT_MS];
+        active_stream = &streambuf[(++streambuf_id) & STREAM_BUFCNT_MS];
     }
     if (size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
         fatal_error("%s() : fail\n");
@@ -127,7 +128,7 @@ int bsp_serial_send (char *buf, size_t cnt)
 {
 extern timer_desc_t uart_hal_wdog_tim;
     irqmask_t irq_flags = uart_hal_wdog_tim.irqmask;
-    uart_desc_t *uart_desc = uart_get_stdio_port();
+    void *uart_desc = uart_get_stdio_port();
     int ret = 0;
 
     if (inout_early_clbk) {
@@ -153,8 +154,8 @@ void serial_flush (void)
 
 int bsp_serial_send (char *buf, size_t cnt)
 {
-    uart_desc_t *uart_desc = uart_get_stdio_port();
-    
+    void *uart_desc = uart_get_stdio_port();
+
     return uart_hal_submit_tx_data(uart_desc, buf, cnt);
 }
 
@@ -233,9 +234,9 @@ int aprint (const char *str, int size)
     return size;
 }
 
-void serial_hal_get_tx_buf (uart_desc_t *uart_desc, uint32_t *tstamp, int *pos)
+void serial_hal_get_tx_buf (void *uart_desc, uint32_t *tstamp, int *pos)
 {
-    streambuf_t *a = &streambuf[uart_desc->tx_id & STREAM_BUFCNT_MS];
+    streambuf_t *a = &streambuf[streambuf_id & STREAM_BUFCNT_MS];
     *tstamp = a->timestamp;
     *pos = a->bufposition;
 }
@@ -258,7 +259,7 @@ void serial_tickle (void)
 {
     char buf[512];
     int cnt = sizeof(buf), left;
-		uart_desc_t *uart_desc = uart_get_stdio_port();
+    void *uart_desc = uart_get_stdio_port();
 
     left = uart_hal_rx_flush(uart_desc, buf, &cnt);
     if (cnt > 0) {

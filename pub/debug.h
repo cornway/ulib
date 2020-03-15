@@ -70,6 +70,4 @@ extern int32_t g_serial_rx_eof;
 
 int dvprintf (const char *fmt, va_list argptr);
 
-#endif /*DEBUG_SERIAL*/
-
 #endif /*_SERIAL_DEBUG_H_*/

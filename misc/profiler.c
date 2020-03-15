@@ -1,6 +1,5 @@
-#include "stdint.h"
-#include "string.h"
-#include <main.h>
+#include <stdint.h>
+#include <string.h>
 
 #include <tim.h>
 #include "../../common/int/bsp_cmd.h"
@@ -144,7 +143,7 @@ void _profiler_enter (const char *func, int line)
     if (prof_time_init_ok && g_profile_timer_tsf == 1) {
         rec->cycles = tim_hal_get_cycles(&profile_timer_desc);
     } else {
-        rec->cycles = DWT->CYCCNT;
+        rec->cycles = cpu_hal_get_cycles();
     }
     prof_link_rec(rec);
 }
@@ -169,7 +168,7 @@ void _profiler_exit (const char *func, int line)
     if (prof_time_init_ok && g_profile_timer_tsf == 1) {
         rec->cycles = tim_hal_get_cycles(&profile_timer_desc);
     } else {
-        rec->cycles = DWT->CYCCNT;
+        rec->cycles = cpu_hal_get_cycles();
     }
 
     prof_link_rec(rec);
@@ -212,13 +211,13 @@ void TIM2_IRQHandler (void)
 
 void profiler_hal_init (void)
 {
-    DWT->CTRL |= 1 ; // enable the counter
-    DWT->CYCCNT = 0; // reset the counter
+    cpu_hal_init_cycles();
 }
 
 static void profiler_timer_init (void)
 {
-
+    irqn_t irq;
+    void *hw;
     profile_timer_desc.flags = TIM_RUNREG;
     profile_timer_desc.period = 0xffffffff;
     profile_timer_desc.presc = 1000000;
@@ -226,7 +225,11 @@ static void profiler_timer_init (void)
     profile_timer_desc.init = profile_timer_msp_init;
     profile_timer_desc.deinit = profile_timer_msp_deinit;
 
-    if (hal_tim_init(&profile_timer_desc, TIM2, TIM2_IRQn) == 0) {
+    hw = tim_hal_alloc_hw(TIM_RUNREG, &irq);
+    if (!hw) {
+        return;
+    }
+    if (hal_tim_init(&profile_timer_desc, hw, irq) == 0) {
         prof_time_init_ok = 1;
     }
     if (!prof_time_init_ok) {

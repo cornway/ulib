@@ -8,14 +8,14 @@
 #define __LITTLE_ENDIAN__
 #define __LITTLE_ENDIAN_BF__
 
-#include "Arm/m7/inc/machM4.h"
+#include "arm/m7/inc/machM4.h"
 
 #elif defined(__ARCH_ARM_M7__)
 
 #define __LITTLE_ENDIAN__
 #define __LITTLE_ENDIAN_BF__
 
-#include "Arm/m7/inc/machM7.h"
+#include "arm/m7/inc/machM7.h"
 
 #else /*__ARCH_ARM_M4__*/
 

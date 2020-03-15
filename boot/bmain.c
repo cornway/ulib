@@ -14,7 +14,8 @@
 #include <audio_main.h>
 #include <misc_utils.h>
 #include <jpeg.h>
-#include <bconf.h>
+#include "inc/bconf.h"
+
 
 static gui_t gui;
 static pane_t *pane_console, *pane_selector,
