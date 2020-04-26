@@ -3,7 +3,7 @@
 #include <bsp_api.h>
 #include <stdarg.h>
 #include <misc_utils.h>
-#include "../../common/int/bsp_cmd.h"
+#include <bsp_cmd.h>
 #include <lcd_main.h>
 #include <audio_main.h>
 #include <input_main.h>

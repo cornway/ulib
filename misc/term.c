@@ -6,7 +6,7 @@
 #include "../../common/int/term_int.h"
 #include "../../common/int/bsp_cmd_int.h"
 
-#include "../../common/int/bsp_cmd.h"
+#include <bsp_cmd.h>
 #include <misc_utils.h>
 #include <debug.h>
 

@@ -10,7 +10,7 @@
 #include <lcd_main.h>
 #include <heap.h>
 #include <bsp_sys.h>
-#include "../../common/int/bsp_cmd.h"
+#include <bsp_cmd.h>
 #include <audio_main.h>
 #include <misc_utils.h>
 #include <jpeg.h>

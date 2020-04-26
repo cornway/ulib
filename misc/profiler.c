@@ -3,13 +3,13 @@
 #include <main.h>
 
 #include <tim.h>
-#include "../../common/int/bsp_cmd.h"
 
 #include <nvic.h>
 #include <debug.h>
 #include <misc_utils.h>
 #include <dev_io.h>
 #include <heap.h>
+#include <bsp_cmd.h>
 
 #define P_RECORDS_MAX 1024
 #define P_MAX_DEEPTH 36
