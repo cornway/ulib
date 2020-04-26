@@ -80,12 +80,6 @@ int dev_priv_stub (int c, void *v)
 #define API_SETUP(api, module) \
 (api)->api.module = &(api)->module;
 
-#if defined(BOOT)
-bspapi_t *bsp_api_attach (void)
-{
-    return NULL;
-}
-#else
 bspapi_t *bsp_api_attach (void)
 {
     arch_word_t *ptr, size;
@@ -252,7 +246,6 @@ bspapi_t *bsp_api_attach (void)
 
     return &api->api;
 }
-#endif /*defined(BOOT)*/
 
 #else /*BSP_INDIR_API*/
 
@@ -379,24 +372,23 @@ int bsp_argc_argv_check (const char *arg)
 void bsp_argc_argv_set (const char *arg)
 {
     arch_word_t *ptr, maxsize;
-    int size, tmp;
+    int size;
     const char **_argv;
     char *charptr, *tempptr;
     tlv_t *tlv;
 
     arch_get_shared(&ptr, &maxsize);
 
+	/* First tlv is boot API */
     tlv = __get_tlv(ptr);
     maxsize = maxsize - tlv->size;
-    tlv = __get_next_tlv(ptr);
+    tlv = __get_next_tlv(tlv);
 
     tempptr = (char *)&tlv->data[0];
     size = maxsize;
     charptr = tempptr;
 
     size = snprintf(charptr, size, "%s ", arg);
-    charptr += tmp;
-    maxsize -= tmp;
 
     tlv = __set_next_tlv(tlv, size);
 

@@ -9,7 +9,7 @@
 #include "../../common/int/sd_diskio.h"
 #include <misc_utils.h>
 #include <dev_io.h>
-#include <dev_conf.h>
+#include <config.h>
 #include <debug.h>
 #include <heap.h>
 

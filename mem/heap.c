@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include <misc_utils.h>
+#include <config.h>
 #include <arch.h>
 #include "../../common/int/mpu.h"
 #include <debug.h>
@@ -149,7 +150,7 @@ void heap_dump (void)
     dprintf("%s() :\n", __func__);
     __arch_get_heap(&heap_mem, &heap_size);
 
-    heap_size_left = heap_size - MPU_CACHELINE * 2 - heap_size_total;
+    heap_size_left = heap_size - 32 * 2 - heap_size_total;
     assert(heap_size_left <= heap_size);
     if (heap_size_left) {
         dprintf("%s() : Unfreed left : %u bytes\n", __func__, heap_size_left);
@@ -167,7 +168,7 @@ void heap_init (void)
     dprintf("Memory :\n");
     dprintf("stack : <0x%p> + %u bytes\n", (void *)sp_mem, sp_size);
     dprintf("heap : <0x%p> + %u bytes\n", (void *)heap_mem, heap_size);
-    heap_size_total = heap_size - MPU_CACHELINE * 2;
+    heap_size_total = heap_size - 32 * 2;
 #ifdef BOOT
 extern void m_init (void *pool, uint32_t size);
 

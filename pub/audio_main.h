@@ -2,7 +2,7 @@
 #define _AUDIO_MAIN_H
 
 #include <stdint.h>
-#include <dev_conf.h>
+#include <config.h>
 #include <nvic.h>
 #include <bsp_api.h>
 
