@@ -20,6 +20,8 @@ typedef struct {
     uint8_t lut[256][256];
 } blut8_t;
 
+typedef uint8_t pix8_t;
+
 static inline void
 __screen_to_gfx2d (gfx_2d_buf_t *g, screen_t *s)
 {
@@ -47,6 +49,9 @@ gfx2d_scale2x2_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
 
 void
 gfx2d_scale3x3_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
+
+void
+gfx2d_scale2x2_8bpp_filt_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
 
 void gfx2d_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d);
 

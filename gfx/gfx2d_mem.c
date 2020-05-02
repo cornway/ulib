@@ -4,8 +4,6 @@
 #include <misc_utils.h>
 #include <heap.h>
 
-typedef uint8_t pix8_t;
-
 void gfx2d_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d)
 {
     screen_t dest_s, src_s;
@@ -222,3 +220,45 @@ gfx2d_scale3x3_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
     }
 }
 
+IRAMFUNC static void
+__gfx2d_scale2x2_8bpp_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
+
+static inline pix8_t
+__gfx2d_Bi_blend (blut8_t *lut, pix8_t c00, pix8_t c10, pix8_t c01, pix8_t c11)
+{
+    pix8_t a = lut->lut[c00][c10];
+    pix8_t b = lut->lut[c01][c11];
+    return lut->lut[a][b];
+}
+
+static void
+__gfx2d_scale2x2_8bpp_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
+{
+    int x, y;
+    int gx, gy;
+    pix8_t *srcraw, *dstraw;
+    pix8_t c00, c01, c10, c11;
+
+    srcraw = (pix8_t *)src->buf;
+    dstraw = (pix8_t *)dest->buf;
+
+    for (y = 0; y < dest->htotal; y++) {
+        for (x = 0; x < dest->wtotal; x++) {
+            gx = x / 2;
+            gy = y / 2;
+            c00 = srcraw[gy * src->wtotal + gx];
+            c10 = srcraw[gy * src->wtotal + (gx + 1)];
+            c01 = srcraw[(gy + 1) * src->wtotal + gx];
+            c11 = srcraw[(gy + 1) * src->wtotal + (gx + 1)];
+            *dstraw++ = __gfx2d_Bi_blend(lut, c00, c10, c01, c11);
+        }
+    }
+}
+
+void
+gfx2d_scale2x2_8bpp_filt_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
+{
+    if (cs_check_symb(__gfx2d_scale2x2_8bpp_Bi)) {
+        __gfx2d_scale2x2_8bpp_Bi(lut, dest, src);
+    }
+}
