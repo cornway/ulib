@@ -3,7 +3,9 @@
 #include <misc_utils.h>
 #include <config.h>
 #include <arch.h>
+#ifdef BOOT
 #include "../../common/int/mpu.h"
+#endif
 #include <debug.h>
 #include <bsp_sys.h>
 

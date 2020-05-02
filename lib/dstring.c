@@ -245,3 +245,9 @@ int d_astrnmatch (const char *a, const char *b, int n)
     return n;
 }
 
+int d_strcmp (const char *a, const char *b)
+{
+    while (*a && *b && *a++ == *b++) { ; }
+    return *a || *b;
+}
+

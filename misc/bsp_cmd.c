@@ -4,7 +4,7 @@
 #include "../../common/int/term_int.h"
 #include "../../common/int/boot_int.h"
 #include "../../common/int/bsp_cmd_int.h"
-#include "../../common/int/bsp_mod_int.h"
+#include <bsp_mod.h>
 #include <bsp_cmd.h>
 #include <debug.h>
 #include <heap.h>

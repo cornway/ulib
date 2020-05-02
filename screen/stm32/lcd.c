@@ -10,6 +10,7 @@
 #include <debug.h>
 #include <heap.h>
 #include <bsp_sys.h>
+#include <bsp_cmd.h>
 
 static void screen_copy_1x1_SW (screen_t *in);
 static void screen_copy_1x1_HW (screen_t *in);
@@ -592,7 +593,11 @@ screen_copy_2x2_8bpp_filt (screen_t *in)
     vid_vsync(1);
     __screen_to_gfx2d(&dest, &screen);
     __screen_to_gfx2d(&src, in);
-    gfx2d_scale2x2_8bpp_filt((blut8_t *)((uint32_t)lcd_active_cfg->blut + lcd_active_cfg->blutoff), &dest, &src);
+    if (lcd_active_cfg->bilinear) {
+        gfx2d_scale2x2_8bpp_filt_Bi((blut8_t *)((uint32_t)lcd_active_cfg->blut + lcd_active_cfg->blutoff), &dest, &src);
+    } else {
+        gfx2d_scale2x2_8bpp_filt((blut8_t *)((uint32_t)lcd_active_cfg->blut + lcd_active_cfg->blutoff), &dest, &src);
+    }
 }
 
 
@@ -608,4 +613,21 @@ screen_copy_3x3_8bpp(screen_t *in)
     __screen_to_gfx2d(&dest, &screen);
     __screen_to_gfx2d(&src, in);
     gfx2d_scale3x3_8bpp(&dest, &src);
+}
+
+int vid_priv_ctl (int c, void *v)
+{
+    switch (c) {
+        case LCD_PRIV_GET_TRANSP_LUT:
+            if (lcd_active_cfg->blut) {
+                blut8_t *blut = (blut8_t *)((arch_word_t)lcd_active_cfg->blut + lcd_active_cfg->blutoff);
+                *(blut8_t **)v = blut;
+            } else {
+                return -CMDERR_NOCORE;
+            }
+        break;
+        default :
+            return -CMDERR_NOCORE;
+    }
+    return 0;
 }

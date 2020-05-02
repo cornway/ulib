@@ -8,7 +8,9 @@
 #include <dev_io.h>
 #include <debug.h>
 #include <nvic.h>
+#ifdef BOOT
 #include "../../common/int/mpu.h"
+#endif
 #include <heap.h>
 #include <bsp_sys.h>
 

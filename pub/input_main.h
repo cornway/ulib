@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 
-#include "../../common/int/touch.h"
 
+#ifdef BOOT
+#include "../../common/int/touch.h"
+#endif
 #include <bsp_api.h>
 
 #define GAMEPAD_USE_FLYLOOK 1

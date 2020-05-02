@@ -145,7 +145,7 @@ bspapi_t *bsp_api_attach (void)
     BSP_VID_API(dev.deinit) = vid_deinit;
     BSP_VID_API(dev.conf)   = dev_conf_stub;
     BSP_VID_API(dev.info)   = dev_info_stub;
-    BSP_VID_API(dev.priv)   = dev_priv_stub;
+    BSP_VID_API(dev.priv)   = vid_priv_ctl;
     BSP_VID_API(get_wh)     = vid_wh;
     BSP_VID_API(mem_avail)  = vid_mem_avail;
     BSP_VID_API(win_cfg)    = vid_config;
