@@ -44,7 +44,14 @@
   */
 
 /* Includes ----------------------------------------------------------------- */
-#include "stm32f7xx_hal.h"
+#if defined(STM32H745xx)
+#include "stm32h7xx.h"
+#define GPIO_AF10_OTG_HS GPIO_AF10_OTG1_HS
+#elif defined(STM32F769xx)
+#include "stm32f7xx.h"
+#else
+#error
+#endif
 #include "usbh_core.h"
 
 HCD_HandleTypeDef hhcd;

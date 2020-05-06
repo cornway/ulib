@@ -6,7 +6,15 @@
 #include <misc_utils.h>
 #include <input_main.h>
 #include <debug.h>
+
+#if defined(STM32H745xx)
+#include "stm32h745i_discovery_ts.h"
+#elif defined(STM32F769xx)
 #include "stm32f769i_discovery_ts.h"
+#else
+#error
+#endif
+
 
 
 
@@ -60,15 +68,30 @@ void ts_init_states (void)
 
 static void ts_read_status (ts_status_t *ts_status)
 {
-    TS_StateTypeDef  TS_State;
     uint8_t state = 0;
-
+    uint32_t x, y, td;
+#if defined(STM32H745xx)
+    TS_State_t TS_State;
+    if (BSP_TS_GetState(0, &TS_State) != BSP_ERROR_NONE) {
+        input_fatal("BSP_TS_GetState != TS_OK\n");
+    }
+    x = TS_State.TouchX;
+    y = TS_State.TouchY;
+    td = TS_State.TouchDetected;
+#elif defined(STM32F769xx)
+    TS_StateTypeDef  TS_State;
     if (BSP_TS_GetState(&TS_State) != TS_OK) {
         input_fatal("BSP_TS_GetState != TS_OK\n");
     }
+    x = TS_State.touchX[0];
+    y = TS_State.touchY[0];
+    td = TS_State.touchDetected;
+#else
+#error
+#endif
 
     ts_status->status = TOUCH_IDLE;
-    state = ts_states_map[ts_prev_state][TS_State.touchDetected ? TS_PRESS_ON : TS_PRESS_OFF];
+    state = ts_states_map[ts_prev_state][td ? TS_PRESS_ON : TS_PRESS_OFF];
     switch (state) {
         case TS_IDLE:
             if (ts_state_cooldown_cnt) {
@@ -80,8 +103,8 @@ static void ts_read_status (ts_status_t *ts_status)
             break;
         case TS_CLICK:
             ts_status->status = TOUCH_PRESSED;
-            ts_status->x = TS_State.touchX[0];
-            ts_status->y = TS_State.touchY[0];
+            ts_status->x = x;
+            ts_status->y = y;
             break;
         case TS_RELEASED:
             ts_status->status = TOUCH_RELEASED;
@@ -254,7 +277,13 @@ void input_bsp_deinit (void)
     dprintf("%s() :\n", __func__);
     user_handler = NULL;
     if (input_is_touch_avail()) {
+#if defined(STM32H745xx)
+        BSP_TS_DeInit(0);
+#elif defined(STM32F769xx)
         BSP_TS_DeInit();
+#else
+#error
+#endif
     }
     joypad_bsp_deinit();
 }

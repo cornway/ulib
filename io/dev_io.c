@@ -6,7 +6,14 @@
 #include <ff.h>
 #include <ff_gen_drv.h>
 
+#if defined(STM32H745xx)
+
+#elif defined(STM32F769xx)
 #include "../../common/int/sd_diskio.h"
+#else
+#error
+#endif
+
 #include <misc_utils.h>
 #include <dev_io.h>
 #include <config.h>
@@ -41,7 +48,7 @@ typedef struct {
     FILINFO fn;
 } ALIGN(8) dirhandle_t;
 
-static fobjhdl_t *handles[MAX_HANDLES * 2];
+static fobjhdl_t *handles[MAX_HANDLES * 4];
 
 static int _devio_mount (char *path);
 static void _devio_unmount (char *path);
@@ -178,11 +185,19 @@ int dev_io_init (void)
 
 void dev_io_deinit (void)
 {
-extern void SD_Deinitialize(void);
-
     dprintf("%s() :\n", __func__);
     _devio_unmount(DEV_Path);
-    SD_Deinitialize();
+#if defined(STM32H745xx)
+
+#elif defined(STM32F769xx)
+    {
+        extern void SD_Deinitialize(void);
+        SD_Deinitialize();
+    }
+#else
+#error
+#endif
+
 }
 
 
@@ -259,8 +274,9 @@ void d_close (int h)
     res = f_close(getfile(h));
     if (res != FR_OK) {
         dbg_eval(DBG_ERR) dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
+    } else {
+        freefile(h);
     }
-    freefile(h);
 }
 
 int d_unlink (const char *path)
@@ -490,10 +506,15 @@ static int _devio_mount (char *path)
     FRESULT res;
 
     d_memzero(&DEV_Fs, sizeof(DEV_Fs));
+#if defined(STM32H745xx)
 
+#elif defined(STM32F769xx)
     if(FATFS_LinkDriver(&SD_Driver, path)) {
         return -DERR_NOFS;
     }
+#else
+#error
+#endif
 
     res = f_mount(&DEV_Fs, path, 1);
     if(res != FR_OK) {
