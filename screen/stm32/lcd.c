@@ -197,7 +197,7 @@ static screen_update_handler_t vid_get_scaler (int scale, uint8_t colormode)
                 if (conf->hwaccel) {
                     h = screen_copy_2x2_HW;
                 } else {
-                    if (conf->filter) {
+                    if (conf->use_clut) {
                         h = screen_copy_2x2_8bpp_filt;
                     } else {
                         h = screen_copy_2x2_8bpp;
@@ -419,7 +419,7 @@ void vid_set_clut (void *palette, uint32_t clut_num_entries)
 
     assert(lcd_active_cfg);
     screen_hal_sync(lcd_active_cfg, 1);
-    if (lcd_active_cfg->config.filter && NULL == lcd_active_cfg->blut) {
+    if (lcd_active_cfg->config.use_clut && NULL == lcd_active_cfg->blut) {
         vid_gen_blut8(lcd_active_cfg, palette, clut_num_entries);
     }
     for (layer = 0; layer < lcd_active_cfg->config.laynum; layer++) {

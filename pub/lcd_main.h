@@ -38,7 +38,7 @@ typedef struct {
     uint8_t clockpresc;
     uint8_t hwaccel: 2,
             cachealgo: 2,
-            filter: 1,
+            use_clut: 1,
             reserved: 3;
 } screen_conf_t;
 

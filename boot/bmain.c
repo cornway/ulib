@@ -278,7 +278,6 @@ boot_gui_set_proc_stat (const char *msg, int percent)
 {
     if (win_prog_set(pane_progress, msg, percent)) {
         gui_draw(&gui, 1);
-        d_sleep(10);
         dprintf("%s() : %s; %d\n", __func__, msg, percent);
     }
 }

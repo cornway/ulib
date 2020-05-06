@@ -52,7 +52,7 @@ static bsp_user_int_api_t user_api = {0};
 int dev_init_stub (void)
 {
     dprintf("%s()\n", __func__);
-    return -1;
+    return -CMDERR_NOCORE;
 }
 
 void dev_deinit_stub (void)
@@ -63,7 +63,7 @@ void dev_deinit_stub (void)
 int dev_conf_stub (const char *arg)
 {
     dprintf("%s() : \'%s\'\n", __func__, arg);
-    return -1;
+    return -CMDERR_NOCORE;
 }
 
 const char *dev_info_stub (void)
@@ -75,7 +75,7 @@ const char *dev_info_stub (void)
 int dev_priv_stub (int c, void *v)
 {
     dprintf("%s()\n", __func__);
-    return 0;
+    return -CMDERR_NOCORE;
 }
 
 #define API_SETUP(api, module) \
@@ -257,11 +257,9 @@ bspapi_t *bsp_api_attach (void)
     bsp_api_int_t *api;
 
     arch_get_shared(&ptr, &size);
-    assert(ptr);
-    assert(size >= sizeof(*api));
 
     api = (bsp_api_int_t *)ptr;
-    assert(api->size == sizeof(*api));
+
     return &api->api;
 }
 

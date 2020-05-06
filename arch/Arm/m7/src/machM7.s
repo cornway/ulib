@@ -1,12 +1,15 @@
                     EXPORT EnableFPU
                     EXPORT __arch_soft_reset
-                    EXPORT upcall                  [WEAK]
+                    EXPORT __arch_rise              [WEAK]
 ;                    EXPORT VMBOOT                  [WEAK]
                     EXPORT __arch_get_stack
                     EXPORT __arch_get_heap
                     EXPORT __arch_asmgoto
                     EXPORT __arch_get_shared
 					EXPORT __arch_get_usr_heap
+                    EXPORT __arch_rise
+
+                    EXPORT SVC_Handler
 
                     IMPORT Stack_Mem
                     IMPORT Stack_Size
@@ -14,8 +17,9 @@
                     IMPORT Heap_Size
                     IMPORT Shared_Mem
                     IMPORT Shared_Size
-					IMPORT UserHeap_Mem
-					IMPORT UserHeap_Size
+                    IMPORT UserHeap_Mem
+                    IMPORT UserHeap_Size
+                    IMPORT UserExceptionH
                 
                     MACRO 
 $label              WRAP $DEST
@@ -56,7 +60,7 @@ $label.BRL          CPSIE   I
                     AREA    |.text|, CODE, READONLY
 
                     ALIGN
-upcall              PROC
+__arch_rise         PROC
                     SWI     0x02
                     BX      LR
                     ENDP
@@ -80,10 +84,6 @@ upcall              PROC
                         
 ;PendSV_Handler      PROC  
 
-;                    ENDP  
-                        
-;SVC_Handler         PROC   
-;SVC_HANDLE_         WRAP VMSvc
 ;                    ENDP 
                     
 ;HardFault_Handler   PROC  
@@ -114,7 +114,18 @@ EnableFPU           PROC
                     BX  LR
                     ENDP
                     ALIGN
-                    
+
+SVC_Handler         PROC   
+                    B __arch_exception
+                    ENDP
+
+__arch_exception    PROC
+                    DMB
+                    MRS     R0, MSP
+                    BL      UserExceptionH
+                    BX      LR
+                    ENDP
+
 __arch_soft_reset   PROC
                     DSB
                     LDR R0, =0xE000ED0C ;AIRCR

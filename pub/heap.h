@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <config.h>
+
 #define ALIGN(x) __attribute__((aligned(x)))
 
 #define SDRAM __attribute__ ((section ("dram")))
@@ -44,11 +46,17 @@ void *_heap_realloc (void *x, size_t size, const char *func);
 void *_heap_calloc (size_t size, const char *func);
 void _heap_free (void *p, const char *func);
 
-#define heap_alloc_shared(size) _heap_alloc_shared(size, __func__);
-#define heap_malloc(size) _heap_malloc(size, __func__);
-#define heap_realloc(x, size) _heap_realloc(x, size, __func__);
-#define heap_calloc(size) _heap_calloc(size, __func__);
-#define heap_free(p) _heap_free(p, __func__);
+#define heap_alloc_shared(size) _heap_alloc_shared(size, __func__)
+#define heap_malloc(size) _heap_malloc(size, __func__)
+#define heap_realloc(x, size) _heap_realloc(x, size, __func__)
+#define heap_calloc(size) _heap_calloc(size, __func__)
+#define heap_free(p) _heap_free(p, __func__)
+
+#define heap_alloc_shared_ptr _heap_alloc_shared
+#define heap_malloc_ptr _heap_malloc
+#define heap_realloc_ptr _heap_realloc
+#define heap_calloc_ptr _heap_calloc
+#define heap_free_ptr _heap_free
 
 #define heap_api_malloc(api, size) (api)->malloc(size, __func__)
 #define heap_api_free(api, p) (api)->free(p, __func__)
@@ -71,6 +79,12 @@ void *heap_malloc (size_t size);
 void *heap_realloc (void *x, size_t size);
 void *heap_calloc (size_t size);
 void heap_free (void *p);
+
+#define heap_alloc_shared_ptr heap_alloc_shared
+#define heap_malloc_ptr heap_malloc
+#define heap_realloc_ptr heap_realloc
+#define heap_calloc_ptr heap_calloc
+#define heap_free_ptr heap_free
 
 #define heap_api_malloc(api, size) (api)->malloc(size)
 #define heap_api_free(api, p) (api)->free(p)

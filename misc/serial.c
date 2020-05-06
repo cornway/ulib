@@ -146,7 +146,7 @@ extern timer_desc_t uart_hal_wdog_tim;
 
 void serial_flush (void)
 {
-    uart_hal_tx_flush();
+    uart_hal_tx_flush_all();
 }
 
 #else /*SERIAL_TX_BUFFERIZED*/

@@ -90,9 +90,9 @@ __heap_free (void *_p)
 extern void m_free (void *);
 extern void *m_exist (void *);
     mchunk_t *p = (mchunk_t *)_p;
-    if (NULL == p) {
-        heap_dbg("[%s] : Failed to free <%p>\n", func, p);
-        //assert(0);
+    if (NULL == _p) {
+        dprintf("%s : Failed to free <%p>\n", __func__, _p);
+        assert(0);
     }
 #if defined(BOOT)
     if (m_exist(p)) {

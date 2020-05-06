@@ -8,6 +8,7 @@
 #include <dev_io.h>
 #include <debug.h>
 #include <nvic.h>
+#include <heap.h>
 #ifdef BOOT
 #include "../../common/int/mpu.h"
 #endif
@@ -24,8 +25,8 @@ static bsp_user_api_t user_api =
 {
     .heap =
     {
-        .malloc = heap_malloc,
-        .free = heap_free
+        .malloc = heap_malloc_ptr,
+        .free = heap_free_ptr
     },
 };
 

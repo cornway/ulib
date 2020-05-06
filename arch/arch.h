@@ -33,6 +33,12 @@ extern void __arch_soft_reset (void);
 #define arch_soft_reset __arch_soft_reset
 #endif
 
+#ifndef arch_rise
+extern void __arch_rise (void *args);
+#define arch_rise __arch_rise
+#endif
+
+
 #ifndef arch_get_stack
 extern void __arch_get_stack (void *, void *);
 #define arch_get_stack __arch_get_stack

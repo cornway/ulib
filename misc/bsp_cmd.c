@@ -64,6 +64,11 @@ static cmd_func_t saved_stdin_hdlr = NULL;
 static int stdin_file = -1;
 static char __eof_sequence[16] = "...............";
 
+static int cmd_util_assert (int argc, const char **argv)
+{
+    assert(0);
+}
+
 /*FUNCTION TABLES=============================================================*/
 
 static const cmd_func_map_t cmd_func_tbl[] =
@@ -95,7 +100,7 @@ static const cmd_func_map_t cmd_priv_func_tbl[] =
     {"stdin",   cmd_stdin_ctrl},
     {"serial",  cmd_util_serial},
     {"runcmd",  cmd_exec_cmdfile},
-    
+    {"assert",  cmd_util_assert},
 };
 
 /*============================================================================*/
@@ -322,7 +327,7 @@ static int __cmd_handle_ascii (dvar_int_t *v, int argc, const char **argv)
         case DVAR_FUNC:
         {
             cmd_func_t func = (cmd_func_t)v->dvar.ptr;
-            argc = func(argc, &argv[0]);
+            argc = func(argc, argv);
         }
         break;
         default:
@@ -330,7 +335,7 @@ static int __cmd_handle_ascii (dvar_int_t *v, int argc, const char **argv)
         break;
     }
     if (v->dvar.flags & FLAG_EXPORT) {
-        /*Exported function completes all*/
+        /* Exit after exported function handle */
         return 0;
     }
     return argc;

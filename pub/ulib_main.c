@@ -35,14 +35,22 @@ void dumpstack (void)
 {
 }
 
-void fatal_error (char *message, ...)
+void UserExceptionH (void *stack)
+{
+    uint32_t *frame = (uint32_t *)stack;
+    dprintf("Stack <%p> : 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+            frame, frame[0], frame[1], frame[2], frame[3], frame[4], frame[5]);
+}
+
+void fatal_error (char *fmt, ...)
 {
     va_list argptr;
 
-    va_start (argptr, message);
-    dvprintf (message, argptr);
+    va_start (argptr, fmt);
+    dvprintf(fmt, argptr);
     va_end (argptr);
 
+    arch_rise(NULL);
     serial_flush();
     arch_soft_reset();
     for(;;) {}
