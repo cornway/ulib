@@ -1,5 +1,5 @@
-#ifndef __MACH_M4_H__
-#define __MACH_M4_H__
+#ifndef __MACH_M7_H__
+#define __MACH_M7_H__
 
 #include <stdint.h>
 
@@ -271,7 +271,7 @@ _EXTERN _VALUES_IN_REGS ARG_STRUCT_T export_mach_m4_svc (ARG_STRUCT_T);
 
 
     
-#endif /*__MACH_M4_H__*/
+#endif /*__MACH_M7_H__*/
 
 
 /*End of file*/
