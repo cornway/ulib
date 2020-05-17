@@ -48,7 +48,7 @@
 #define __USBH_CONF_H
 
 /* Includes ----------------------------------------------------------------- */
-#if defined(STM32H745xx)
+#if defined(STM32H745xx) || defined(STM32H747xx)
 #include "stm32h7xx.h"
 #elif defined(STM32F769xx)
 #include "stm32f7xx.h"

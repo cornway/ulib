@@ -8,7 +8,7 @@
 
 #if defined(STM32H745xx)
 
-#elif defined(STM32F769xx)
+#elif defined(STM32F769xx) || defined(STM32H747xx)
 #include "../../common/int/sd_diskio.h"
 #else
 #error
@@ -189,7 +189,7 @@ void dev_io_deinit (void)
     _devio_unmount(DEV_Path);
 #if defined(STM32H745xx)
 
-#elif defined(STM32F769xx)
+#elif defined(STM32F769xx) || defined(STM32H747xx)
     {
         extern void SD_Deinitialize(void);
         SD_Deinitialize();
@@ -508,7 +508,7 @@ static int _devio_mount (char *path)
     d_memzero(&DEV_Fs, sizeof(DEV_Fs));
 #if defined(STM32H745xx)
 
-#elif defined(STM32F769xx)
+#elif defined(STM32F769xx) || defined(STM32H747xx)
     if(FATFS_LinkDriver(&SD_Driver, path)) {
         return -DERR_NOFS;
     }

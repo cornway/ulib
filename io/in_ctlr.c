@@ -7,16 +7,15 @@
 #include <input_main.h>
 #include <debug.h>
 
-#if defined(STM32H745xx)
+#if defined(STM32H747xx)
+#include "stm32h747i_discovery_ts.h"
+#elif defined(STM32H745xx)
 #include "stm32h745i_discovery_ts.h"
 #elif defined(STM32F769xx)
 #include "stm32f769i_discovery_ts.h"
 #else
 #error
 #endif
-
-
-
 
 #define TS_DEF_CD_COUNT 0
 #define TSENS_SLEEP_TIME 250
@@ -70,7 +69,7 @@ static void ts_read_status (ts_status_t *ts_status)
 {
     uint8_t state = 0;
     uint32_t x, y, td;
-#if defined(STM32H745xx)
+#if defined(STM32H745xx) || defined(STM32H747xx)
     TS_State_t TS_State;
     if (BSP_TS_GetState(0, &TS_State) != BSP_ERROR_NONE) {
         input_fatal("BSP_TS_GetState != TS_OK\n");
@@ -277,7 +276,7 @@ void input_bsp_deinit (void)
     dprintf("%s() :\n", __func__);
     user_handler = NULL;
     if (input_is_touch_avail()) {
-#if defined(STM32H745xx)
+#if defined(STM32H745xx) || defined(STM32H747xx)
         BSP_TS_DeInit(0);
 #elif defined(STM32F769xx)
         BSP_TS_DeInit();

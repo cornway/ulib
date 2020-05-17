@@ -44,7 +44,7 @@
   */
 
 /* Includes ----------------------------------------------------------------- */
-#if defined(STM32H745xx)
+#if defined(STM32H745xx) || defined(STM32H747xx)
 #include "stm32h7xx.h"
 #define GPIO_AF10_OTG_HS GPIO_AF10_OTG1_HS
 #elif defined(STM32F769xx)
