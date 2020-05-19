@@ -525,7 +525,8 @@ static int cmd_mod_insert (int argc, const char **argv)
     arch_word_t progaddr;
     bsp_heap_api_t heap;
 
-    heap_set_api_shared(&heap);
+    heap.malloc = heap_alloc_shared_ptr;
+    heap.free = heap_free_ptr;
 
     if (argc < 2) {
         dprintf("usage : /path/to/file <load address 0x0xxx..>");

@@ -416,9 +416,10 @@ static void boot_gui_bsp_init (gui_t *gui)
     screen_t s = {0};
     dim_t dim = {0};
 
-    gui_bsp_api_t bspapi = {{0}};
+    gui_bsp_api_t bspapi = {0};
 
-    heap_set_api_shared(&heap);
+    heap.malloc = heap_alloc_shared_ptr;
+    heap.free = heap_free_ptr;
 
     bspapi.mem = &heap;
 

@@ -115,8 +115,8 @@ void dev_deinit (void)
 
 int bsp_drv_main (void)
 {
-    char **argv;
-    int argc;
+    char **argv = NULL;
+    int argc = 0;
 
     g_bspapi = bsp_api_attach();
     dev_hal_init();
@@ -124,7 +124,6 @@ int bsp_drv_main (void)
     heap_init();
 
     bsp_drv_init();
-    mpu_init();
 
     VID_PreConfig();
     mainloop(argc, argv);

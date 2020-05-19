@@ -289,7 +289,18 @@ void input_bsp_deinit (void)
 
 int input_bsp_init (void)
 {
+#if defined(STM32H745xx) || defined(STM32H747xx)
+    TS_Init_t ts = {
+        BSP_LCD_GetXSize(),
+        BSP_LCD_GetYSize(),
+        0,
+        1};
+    BSP_TS_Init(0, &ts);
+#elif defined(STM32F769xx)
     BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
+#else
+#error
+#endif
     ts_init_states();
 
     joypad_bsp_init();
@@ -298,7 +309,7 @@ int input_bsp_init (void)
 
 void input_soft_init (input_evt_handler_t handler, const kbdmap_t *kbdmap)
 {
-    memcpy(&input_kbdmap[0], &kbdmap[0], sizeof(input_kbdmap));
+    d_memcpy(&input_kbdmap[0], &kbdmap[0], sizeof(input_kbdmap));
     user_handler = handler;
     ts_attach_keys(ts_zones_keymap, kbdmap);
 }

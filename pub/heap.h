@@ -34,12 +34,6 @@ typedef struct bsp_heap_api_s {
      void (*free) (void *p, const char *func);
 } bsp_heap_api_t;
 
-#define heap_set_api_shared(api)           \
-({                                         \
-     (api)->malloc = _heap_alloc_shared;   \
-     (api)->free = _heap_free;             \
-})
-
 void *_heap_alloc_shared (size_t size, const char *func);
 void *_heap_malloc (size_t size, const char *func);
 void *_heap_realloc (void *x, size_t size, const char *func);
@@ -68,12 +62,6 @@ typedef struct bsp_heap_api_s {
      void (*free) (void *p);
 } bsp_heap_api_t;
 
-#define heap_set_api_shared(api)        \
-({                                      \
-     (api)->malloc = heap_alloc_shared; \
-     (api)->free = heap_free;           \
-})
-
 void *heap_alloc_shared (size_t size);
 void *heap_malloc (size_t size);
 void *heap_realloc (void *x, size_t size);
@@ -90,5 +78,11 @@ void heap_free (void *p);
 #define heap_api_free(api, p) (api)->free(p)
 
 #endif /*#HEAP_TRACE*/
+
+#define heap_set_api_shared(api)            \
+({                                          \
+     (api)->malloc = heap_alloc_shared_ptr; \
+     (api)->free = heap_free_ptr;           \
+})
 
 #endif /*__HEAP_H__*/
