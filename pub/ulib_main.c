@@ -51,6 +51,7 @@ void fatal_error (char *fmt, ...)
     va_end (argptr);
 
     arch_rise(NULL);
+    serial_safe_mode(1);
     serial_flush();
     arch_soft_reset();
     for(;;) {}
@@ -85,9 +86,9 @@ extern int32_t g_serial_rxtx_eol_sens;
     cmd_init();
 
     audio_init();
+    vid_init();
     input_bsp_init();
     profiler_init();
-    vid_init();
     cmd_register_i32(&g_dev_debug_level, "dbglvl");
     cmd_register_i32(&g_serial_rxtx_eol_sens, "set_rxeof");
     return 0;
@@ -118,8 +119,8 @@ int bsp_drv_main (void)
     char **argv = NULL;
     int argc = 0;
 
-    g_bspapi = bsp_api_attach();
     dev_hal_init();
+    g_bspapi = bsp_api_attach();
     mpu_init();
     heap_init();
 

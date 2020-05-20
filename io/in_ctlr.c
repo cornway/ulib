@@ -49,7 +49,6 @@ static uint8_t ts_zones_keymap[3][4];
 
 static void input_fatal (char *msg)
 {
-    extern void fatal_error (char *message, ...);
     fatal_error(msg);
 }
 

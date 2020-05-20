@@ -74,6 +74,8 @@ int aprint (const char *str, int size);
 
 extern int32_t g_serial_rx_eof;
 
+void fatal_error (char *message, ...) PRINTF;
+
 #endif /*BSP_INDIR_API*/
 
 int dvprintf (const char *fmt, va_list argptr);

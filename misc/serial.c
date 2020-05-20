@@ -82,7 +82,7 @@ __insert_tx_time_ms (const char *fmt, char *buf, int max)
 static void __submit_to_hw (uart_desc_t *uart_desc, streambuf_t *stbuf)
 {
     if (uart_hal_submit_tx_data(uart_desc, stbuf->data, stbuf->bufposition) < 0) {
-        fatal_error("%s() : fail\n");
+        fatal_error("%s() : fail\n", __func__);
     }
     stbuf->bufposition = 0;
     stbuf->timestamp = 0;
@@ -115,7 +115,7 @@ int serial_submit_tx_data (uart_desc_t *uart_desc, const void *data, size_t size
         active_stream = &streambuf[(++uart_desc->tx_id) & STREAM_BUFCNT_MS];
     }
     if (size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
-        fatal_error("%s() : fail\n");
+        fatal_error("%s() : fail\n", __func__);
     }
     if (size) {
         __buf_append_data(active_stream, data, size);
@@ -163,6 +163,12 @@ void serial_flush (void)
 }
 
 #endif /*SERIAL_TX_BUFFERIZED*/
+
+void serial_safe_mode (int safe)
+{
+    uart_desc_t *uart_desc = uart_get_stdio_port();
+    uart_hal_set_tx_mode(uart_desc, !safe);
+}
 
 void serial_putc (char c)
 {
@@ -233,7 +239,7 @@ void serial_tickle (void)
 {
     char buf[512];
     int cnt = sizeof(buf), left;
-		uart_desc_t *uart_desc = uart_get_stdio_port();
+    uart_desc_t *uart_desc = uart_get_stdio_port();
 
     left = uart_hal_rx_flush(uart_desc, buf, &cnt);
     if (cnt > 0) {
@@ -243,3 +249,4 @@ void serial_tickle (void)
         bsp_inout_forward(buf, cnt, '<');
     }
 }
+

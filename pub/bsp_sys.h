@@ -48,7 +48,6 @@ typedef struct bsp_sytem_api_s {
 
 #else /*BSP_INDIR_API*/
 
-void fatal_error (char *message, ...);
 void _profiler_enter (const char *func, int line);
 void _profiler_exit (const char *func, int line);
 void profiler_reset (void);
