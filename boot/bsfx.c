@@ -85,7 +85,11 @@ void bsfx_sound_precache (void (*statfunc) (const char *, int), int prev_per)
         snprintf(path, sizeof(path), "%s/%s", BOOT_SFX_DIR_PATH, name);
         sfx_map[i].sfx_id = bsp_open_wave_sfx(path);
         if (statfunc) {
-            statfunc(path, ++prev_per);
+            if (sfx_map[i].sfx_id < 0) {
+                statfunc("No such file", prev_per);
+            } else {
+                statfunc(path, ++prev_per);
+            }
         }
     }
 }

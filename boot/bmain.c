@@ -165,6 +165,11 @@ b_gui_print_apps_list (pane_t *pane)
     assert(arrlen(binarray) > maxy);
     bres_querry_executables_for_range(binarray, &start, b_exec_selector_cursor, &size, maxy);
 
+    if (!size) {
+        win_con_printline(pane, 0, "Nothing found...", COLOR_RED);
+        return -CMDERR_NOPATH;
+    }
+
     selected = maxy / 2;
     assert(selected >= start);
 
@@ -352,7 +357,7 @@ extern void (*dev_deinit_callback) (void);
     bsfx_sound_precache(boot_gui_set_proc_stat, 50);
     dprintf("Ready\n");
 
-    boot_gui_set_proc_stat("Muic...", 75);
+    boot_gui_set_proc_stat("Music...", 75);
     bsfx_title_music(1, 40);
     boot_gui_set_proc_stat(BOOT_STARTUP_MUSIC_PATH, 99);
     boot_gui_set_proc_stat("Done...", 100);

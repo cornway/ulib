@@ -63,7 +63,8 @@ void bres_exec_scan_path (void (*statfunc) (const char *, int), const char *path
 
     dir = d_opendir(path);
     if (dir < 0) {
-        dprintf("%s() : fail\n", __func__);
+        dprintf("%s() : Can't open dir: \"%s\"\n", __func__, path);
+        return;
     }
     while (d_readdir(dir, &fobj) >= 0) {
 
@@ -300,8 +301,12 @@ bres_querry_executables_for_range (const exec_desc_t **binarray, int *pstart,
 {
     int tmp, top, bottom, start, i;
     int mid = maxsize / 2;
-    assert(bres_exec_list_size && bres_exec_list_size > cursor);
-    assert(bres_exec_packed_list_ptr);
+
+    if (!bres_exec_list_size || bres_exec_list_size <= cursor || !bres_exec_packed_list_ptr) {
+        *size = 0;
+        *pstart = 0;
+        return;
+    }
 
     top = (bres_exec_list_size - cursor);
     if (top > mid) {

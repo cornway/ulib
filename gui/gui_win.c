@@ -381,7 +381,7 @@ static win_con_t *
 wcon_alloc (gui_t *gui, const char *name,
                 const void *font, int x, int y, int w, int h)
 {
-    uint32_t wmax, hmax;
+    uint32_t wmax = 1, hmax = 1;
     int textsize, textoff;
     pane_t *pane;
     win_con_t *win;
@@ -390,8 +390,10 @@ wcon_alloc (gui_t *gui, const char *name,
 
     gui_get_font_prop(&fprop, font);
 
-    wmax = w / fprop.w;
-    hmax = h / fprop.h;
+    if (fprop.w && fprop.h) {
+        wmax = w / fprop.w;
+        hmax = h / fprop.h;
+    }
     hmax = hmax ? hmax - 1 : 0;
 
     textsize = hmax * wmax;
@@ -437,7 +439,6 @@ pane_t *win_new_console (gui_t *gui, prop_t *prop, int x, int y, int w, int h)
 
     if (font == NULL) {
         font = gui->font;
-        assert(font);
         prop->fontprop.font = font;
     }
 
@@ -570,7 +571,9 @@ int win_con_append (pane_t *pane, const char *str, rgba_t textcolor)
 
     con = WCON_HANDLE(pane);
     line = con->lastline;
-    assert(line);
+    if (!line) {
+        return 0;
+    }
     while (*strptr && linecnt < con->hmax) {
 
         nextline = 0;

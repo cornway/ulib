@@ -137,7 +137,7 @@ void gui_init (gui_t *gui, const char *name, uint8_t framerate,
 
     d_memzero(gui, sizeof(*gui));
 
-    gui->font = gui_get_font_4_size_HAL(gui, 20, 1);
+    gui->font = gui_get_font_4_size(gui, 20, 1);
 
     gui->dim.x = dim->x;
     gui->dim.y = dim->y;

@@ -5,7 +5,7 @@
 
 #define GFX_COLOR_MODE_CLUT 1
 #define GFX_COLOR_MODE_RGB565 2
-#define GFX_COLOR_MODE_RGBA8888 3
+#define GFX_COLOR_MODE_ARGB8888 3
 #define GFX_COLOR_MODE_MAX 4
 #define GFX_COLOR_MODE_AUTO (0xff)
 
@@ -19,7 +19,7 @@
 #define GFX_RGB565_G(color)			((0x07E0 & color) >> 5)
 #define GFX_RGB565_B(color)			(0x001F & color)
 
-#define GFX_RGBA8888(r, g, b, a)	(((a & 0xFF) << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF))
+#define GFX_ARGB8888(a, r, g, b)	(((a & 0xFF) << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF))
 
 #define GFX_ARGB8888_R(color)		((color & 0x00FF0000) >> 16)
 #define GFX_ARGB8888_G(color)		((color & 0x0000FF00) >> 8)

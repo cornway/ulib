@@ -272,6 +272,7 @@ void bsp_tickle (void)
     serial_tickle();
     profiler_reset();
     cmd_tickle();
+    dev_hal_tickle();
 }
 
 #define MAX_ARGC 16

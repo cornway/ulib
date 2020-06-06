@@ -37,14 +37,14 @@ static const char *screen_mode2txt_map[] =
 {
     [GFX_COLOR_MODE_CLUT] = "*CLUT L8*",
     [GFX_COLOR_MODE_RGB565] = "*RGB565*",
-    [GFX_COLOR_MODE_RGBA8888] = "*ARGB8888*",
+    [GFX_COLOR_MODE_ARGB8888] = "*ARGB8888*",
 };
 
 const uint32_t screen_mode2pixdeep[GFX_COLOR_MODE_MAX] =
 {
     [GFX_COLOR_MODE_CLUT]       = 1,
     [GFX_COLOR_MODE_RGB565]     = 2,
-    [GFX_COLOR_MODE_RGBA8888]   = 4,
+    [GFX_COLOR_MODE_ARGB8888]   = 4,
 };
 
 static int vid_gfx_filter_scale = 0;
@@ -89,7 +89,7 @@ static void vid_mpu_create (lcd_wincfg_t *cfg, size_t *fb_size)
 
         assert(i < *fb_size);
         i = *fb_size - i;
-        dprintf("%s() : MPU region requires extra space(padding) +[0x%08x] bytes\n",
+        dprintf("%s() : MPU region requires extra space(padding) + %d bytes\n",
                 __func__, i);
     }
 }
@@ -154,7 +154,7 @@ vid_create_framebuffer (screen_alloc_t *alloc, lcd_wincfg_t *cfg,
 
     fb_mem = alloc->malloc(fb_size);
     if (!fb_mem) {
-        dprintf("%s() : failed to alloc %u bytes\n", __func__, fb_size);
+        dprintf("%s() : failed to allocate %u bytes\n", __func__, fb_size);
         return NULL;
     }
     /*To prevent lcd panel 'in-burning', or 'ghosting' etc.. -
@@ -371,7 +371,7 @@ rgba_t vid_blend (rgba_t fg, rgba_t bg, uint8_t a)
     uint8_t g = __blend(fg_g, bg_g, a);
     uint8_t b = __blend(fg_b, bg_b, a);
 
-    ret = GFX_RGBA8888(r, g, b, 0xff);
+    ret = GFX_ARGB8888(r, g, b, 0xff);
     return ret;
 }
 

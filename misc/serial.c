@@ -109,7 +109,11 @@ int serial_submit_tx_data (uart_desc_t *uart_desc, const void *data, size_t size
 #if SERIAL_TX_TIMESTAMP
     __scan_last_char((const char *)data, size);
 #endif
-
+    if (uart_desc->tx_direct) {
+        __buf_append_data(active_stream, data, size);
+        __submit_to_hw(uart_desc, active_stream);
+        return size;
+    }
     if (flush || size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
         __submit_to_hw(uart_desc, active_stream);
         active_stream = &streambuf[(++uart_desc->tx_id) & STREAM_BUFCNT_MS];

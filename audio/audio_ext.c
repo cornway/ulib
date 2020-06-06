@@ -97,7 +97,7 @@ __new_cache_desc (const char *path)
         dprintf("%s() : fail\n", __func__);
         return NULL;
     }
-    memset(sfx, 0, memsize);
+    d_memset(sfx, 0, memsize);
     d_memcpy(sfx->path, path, pathlen);
 
     __link_desc(sfx);

@@ -481,11 +481,15 @@ d_get_time (d_time_t *time, uint32_t data)
 
 int d_readdir (int dir, fobj_t *fobj)
 {
-    
-    dirhandle_t *dh = (dirhandle_t *)getdir(dir);
+    dirhandle_t *dh;
+
+    if (dir < 0 || getdir(dir) == NULL) {
+        return -DERR_INVPARAM;
+    }
+    dh = (dirhandle_t *)getdir(dir);
     f_readdir(getdir(dir) , &dh->fn);
     if (dh->fn.fname[0] == 0) {
-        return -1;
+        return -DERR_NOPATH;
     }
     snprintf(fobj->name, sizeof(fobj->name), "%s", dh->fn.fname);
     fobj->size = dh->fn.fsize;
