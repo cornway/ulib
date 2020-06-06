@@ -251,3 +251,15 @@ int d_strcmp (const char *a, const char *b)
     return *a || *b;
 }
 
+int d_memcmp (uint8_t *p1, uint8_t *p2, size_t size)
+{
+    while (size--) {
+        if (*p1 != *p2) {
+            return -1;
+        }
+        p1++; p2++;
+    }
+    return 0;
+}
+
+
