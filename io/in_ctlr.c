@@ -6,18 +6,8 @@
 #include <misc_utils.h>
 #include <input_main.h>
 #include <debug.h>
+#include <gfx2d_mem.h>
 
-#if defined(STM32H747xx)
-#include "stm32h747i_discovery_ts.h"
-#elif defined(STM32H745xx)
-#include "stm32h745i_discovery_ts.h"
-#elif defined(STM32F769xx)
-#include "stm32f769i_discovery_ts.h"
-#else
-#error
-#endif
-
-#define TS_DEF_CD_COUNT 0
 #define TSENS_SLEEP_TIME 250
 #define JOY_FREEZE_TIME 150/*ms*/
 
@@ -29,6 +19,8 @@ FIXME :
 */
 extern int joypad_read (int8_t *pads);
 
+static int bsp_input_errno = 0;
+
 static kbdmap_t input_kbdmap[JOY_STD_MAX];
 
 static input_evt_handler_t user_handler = NULL;
@@ -37,82 +29,12 @@ static input_evt_handler_t user_handler = NULL;
     user_handler ? user_handler(a, b) : NULL; \
 }
 
-static uint8_t ts_states_map[4][2];
-static uint8_t ts_prev_state = TS_IDLE;
-static uint8_t ts_state_cooldown_cnt = 0;
 static uint8_t ts_freeze_ticks = 0;
 
 static uint32_t joypad_timestamp = 0;
 
 static int ts_screen_zones[2][3];
 static uint8_t ts_zones_keymap[3][4];
-
-static void input_fatal (char *msg)
-{
-    fatal_error(msg);
-}
-
-void ts_init_states (void)
-{
-    ts_states_map[TS_IDLE][TS_PRESS_ON]         = TS_CLICK;
-    ts_states_map[TS_IDLE][TS_PRESS_OFF]        = TS_IDLE;
-    ts_states_map[TS_CLICK][TS_PRESS_ON]        = TS_PRESSED;
-    ts_states_map[TS_CLICK][TS_PRESS_OFF]       = TS_RELEASED;
-    ts_states_map[TS_PRESSED][TS_PRESS_ON]      = TS_PRESSED;
-    ts_states_map[TS_PRESSED][TS_PRESS_OFF]     = TS_RELEASED;
-    ts_states_map[TS_RELEASED][TS_PRESS_ON]     = TS_IDLE;
-    ts_states_map[TS_RELEASED][TS_PRESS_OFF]    = TS_IDLE;
-}
-
-static void ts_read_status (ts_status_t *ts_status)
-{
-    uint8_t state = 0;
-    uint32_t x, y, td;
-#if defined(STM32H745xx) || defined(STM32H747xx)
-    TS_State_t TS_State;
-    if (BSP_TS_GetState(0, &TS_State) != BSP_ERROR_NONE) {
-        input_fatal("BSP_TS_GetState != TS_OK\n");
-    }
-    x = TS_State.TouchX;
-    y = TS_State.TouchY;
-    td = TS_State.TouchDetected;
-#elif defined(STM32F769xx)
-    TS_StateTypeDef  TS_State;
-    if (BSP_TS_GetState(&TS_State) != TS_OK) {
-        input_fatal("BSP_TS_GetState != TS_OK\n");
-    }
-    x = TS_State.touchX[0];
-    y = TS_State.touchY[0];
-    td = TS_State.touchDetected;
-#else
-#error
-#endif
-
-    ts_status->status = TOUCH_IDLE;
-    state = ts_states_map[ts_prev_state][td ? TS_PRESS_ON : TS_PRESS_OFF];
-    switch (state) {
-        case TS_IDLE:
-            if (ts_state_cooldown_cnt) {
-                ts_state_cooldown_cnt--;
-                return;
-            }
-            break;
-        case TS_PRESSED:
-            break;
-        case TS_CLICK:
-            ts_status->status = TOUCH_PRESSED;
-            ts_status->x = x;
-            ts_status->y = y;
-            break;
-        case TS_RELEASED:
-            ts_status->status = TOUCH_RELEASED;
-            ts_state_cooldown_cnt = TS_DEF_CD_COUNT;
-            break;
-        default:
-            break;
-    };
-    ts_prev_state = state;
-}
 
 /*---1--- 2--- 3--- 4---*/
 /*
@@ -126,6 +48,7 @@ static void ts_read_status (ts_status_t *ts_status)
 static int ts_attach_keys (uint8_t tsmap[3][4], const kbdmap_t kbdmap[JOY_STD_MAX])
 {
     int xmax, ymax, x_keyzone_size, y_keyzone_size;
+    screen_t screen;
 
     tsmap[0][0] = kbdmap[JOY_UPARROW].key;
     tsmap[0][1] = kbdmap[JOY_K10].key;
@@ -142,8 +65,9 @@ static int ts_attach_keys (uint8_t tsmap[3][4], const kbdmap_t kbdmap[JOY_STD_MA
     tsmap[2][2] = kbdmap[JOY_K3].key;
     tsmap[2][3] = kbdmap[JOY_K2].key;
 
-    xmax = BSP_LCD_GetXSize();
-    ymax = BSP_LCD_GetYSize();
+    vid_get_screen(&screen, 0);
+    xmax = screen.width;
+    ymax = screen.height;
     x_keyzone_size = xmax / 4;
     y_keyzone_size = ymax / 3;
 
@@ -178,16 +102,13 @@ ts_get_key (int x, int y)
 
 d_bool input_is_touch_avail (void)
 {
-    if (BSP_LCD_UseHDMI()) {
-        return d_false;
-    }
-    return d_true;
+    return input_hal_touch_avail();
 }
 
 static inline int
 joypad_freezed ()
 {
-    if (HAL_GetTick() > joypad_timestamp)
+    if (d_time() > joypad_timestamp)
         return 0;
     return 1;
 }
@@ -196,8 +117,7 @@ static inline void
 joypad_freeze (uint8_t flags)
 {
     if (flags & PAD_FREQ_LOW) {
-
-        joypad_timestamp = HAL_GetTick() + JOY_FREEZE_TIME;
+        joypad_timestamp = d_time() + JOY_FREEZE_TIME;
     }
 }
 
@@ -234,10 +154,14 @@ void input_proc_keys (i_event_t *evts)
     i_event_t event = {0, keyup, 0, 0};
     ts_status_t ts_status = {TOUCH_IDLE, 0, 0};
 
+    if (bsp_input_errno) {
+        return;
+    }
+
     if (input_is_touch_avail()) {
         if (!ts_freeze_ticks) {
             /*Skip sensor processing while gamepad active*/
-            ts_read_status(&ts_status);
+            input_hal_read_ts(&ts_status);
         }
     }
     if (ts_status.status)
@@ -251,7 +175,7 @@ void input_proc_keys (i_event_t *evts)
         int8_t joy_pads[JOY_STD_MAX];
         int keys_cnt;
 
-        memset(joy_pads, -1, sizeof(joy_pads));
+        d_memset(joy_pads, -1, sizeof(joy_pads));
         keys_cnt = joypad_read(joy_pads);
         if (keys_cnt <= 0 || joypad_freezed()) {
             return;
@@ -272,42 +196,32 @@ void input_proc_keys (i_event_t *evts)
 
 void input_bsp_deinit (void)
 {
-    dprintf("%s() :\n", __func__);
-    user_handler = NULL;
-    if (input_is_touch_avail()) {
-#if defined(STM32H745xx) || defined(STM32H747xx)
-        BSP_TS_DeInit(0);
-#elif defined(STM32F769xx)
-        BSP_TS_DeInit();
-#else
-#error
-#endif
+    if (bsp_input_errno) {
+        return;
     }
+    user_handler = NULL;
+    input_hal_deinit();
     joypad_bsp_deinit();
 }
 
 int input_bsp_init (void)
 {
-#if defined(STM32H745xx) || defined(STM32H747xx)
-    TS_Init_t ts = {
-        BSP_LCD_GetXSize(),
-        BSP_LCD_GetYSize(),
-        0,
-        1};
-    BSP_TS_Init(0, &ts);
-#elif defined(STM32F769xx)
-    BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
-#else
-#error
-#endif
-    ts_init_states();
+    bsp_input_errno = input_hal_init();
 
+    if (bsp_input_errno < 0) {
+        dprintf("%s(): Faied, err %d\n", __func__, bsp_input_errno);
+        return bsp_input_errno;
+    }
     joypad_bsp_init();
+    dprintf("%s():  OK\n", __func__);
     return 0;
 }
 
 void input_soft_init (input_evt_handler_t handler, const kbdmap_t *kbdmap)
 {
+    if (bsp_input_errno) {
+        return;
+    }
     d_memcpy(&input_kbdmap[0], &kbdmap[0], sizeof(input_kbdmap));
     user_handler = handler;
     ts_attach_keys(ts_zones_keymap, kbdmap);
@@ -315,14 +229,19 @@ void input_soft_init (input_evt_handler_t handler, const kbdmap_t *kbdmap)
 
 void input_bind_extra (int type, int sym)
 {
+    if (bsp_input_errno) {
+        return;
+    }
     if (type >= K_EX_MAX) {
-        input_fatal("input_bind_extra : type >= JOY_MAX\n");
+        dprintf("%s() : type >= JOY_MAX\n", __func__);
     }
 }
 
 void input_tickle (void)
 {
-    joypad_tickle();
+    if (!bsp_input_errno) {
+        joypad_tickle();
+    }
 }
 
 #endif

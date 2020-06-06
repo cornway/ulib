@@ -1,6 +1,7 @@
 #ifndef __GFX_2D_MEM_H__
 #define __GFX_2D_MEM_H__
 
+/* TODO: declare screen_t somewhere else */
 typedef struct {
     void *buf;
     int x, y;
