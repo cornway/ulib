@@ -1,6 +1,10 @@
 #ifndef __TIM_H__
 #define __TIM_H__
 
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
 #include <nvic.h>
  
 typedef enum {
@@ -21,7 +25,14 @@ typedef struct timer_desc_s {
     timflags_t flags;
 } timer_desc_t;
 
-int hal_tim_init (timer_desc_t *desc, void *hw, irqn_t irqn);
-int hal_tim_deinit (timer_desc_t *desc);
+int hal_timer_init (timer_desc_t *desc, void *hw, irqn_t irqn);
+int hal_hires_timer_init (timer_desc_t *desc);
+int hal_timer_deinit (timer_desc_t *desc);
+uint32_t hal_timer_value (timer_desc_t *desc);
+
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*__TIM_H__*/

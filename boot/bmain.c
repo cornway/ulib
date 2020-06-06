@@ -1,18 +1,29 @@
+#include <stdint.h>
 #include <string.h>
+#include <stdio.h>
+#include <stdarg.h>
+
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <heap.h>
 #include <debug.h>
+#include <bsp_sys.h>
+#include <bsp_cmd.h>
+#include <misc_utils.h>
+
 #include "../../common/int/boot_int.h"
-#include "../../common/int/term_int.h"
 #include <gfx.h>
+#include <gfx2d_mem.h>
 #include <gui.h>
 #include <dev_io.h>
 #include <nvic.h>
 #include <input_main.h>
 #include <lcd_main.h>
-#include <heap.h>
-#include <bsp_sys.h>
-#include <bsp_cmd.h>
+#include <term.h>
 #include <audio_main.h>
-#include <misc_utils.h>
+#include <dev_io.h>
 #include <jpeg.h>
 #include <bconf.h>
 
@@ -221,6 +232,8 @@ b_alert_decline_clbk (const component_t *com)
     bsfx_start_sound(SFX_NOWAY, 100);
     return 1;
 }
+
+void d_sleep (uint32_t ms);
 
 static int
 b_alert_accept_clbk (const component_t *com)

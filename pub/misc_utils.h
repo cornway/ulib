@@ -1,11 +1,9 @@
 #ifndef __MISC_UTILS_H__
 #define __MISC_UTILS_H__
 
-#include <stdint.h>
-#include <stdlib.h>
-
-#include <arch.h>
-#include <bsp_api.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 enum {
     DBG_OFF,
@@ -75,12 +73,6 @@ extern int g_dev_debug_level;
 
 #define ATTR_UNUSED __attribute__((unused))
 
-void d_memcpy (void *_dst, const void *_src, int cnt);
-void d_memset (void *_dst, int v, int cnt);
-#define d_memzero(dst, cnt) d_memset(dst, 0, cnt)
-int d_wstrtok (const char **tok, int tokcnt, char *str);
-int d_vstrtok (const char **tok, int tokcnt, char *str, const char c);
-
 #ifdef __LITTLE_ENDIAN__
 
 static inline void
@@ -132,5 +124,16 @@ readPtr (const void *_p)
 #endif /*__LITTLE_ENDIAN__*/
 
 #define bug() assert(0);
+
+int d_rlimit_wrap (uint32_t *tsf, uint32_t period);
+void d_sleep (uint32_t ms);
+
+void d_memcpy (void *_dst, const void *_src, int cnt);
+void d_memset (void *_dst, int v, int cnt);
+#define d_memzero(dst, cnt) d_memset(dst, 0, cnt)
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*__MISC_UTILS_H__*/

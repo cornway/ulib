@@ -1,10 +1,21 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
-#if defined(BSP_DRIVER)
+#include <config.h>
 
-#include "string.h"
+#include <arch.h>
+#include <bsp_api.h>
+#include <nvic.h>
+#include <misc_utils.h>
+#include <heap.h>
+
+#include <audio_main.h>
 #include "../../common/int/audio_int.h"
-#include "audio_main.h"
-#include "dev_io.h"
+
+#include <dev_io.h>
+#include <bsp_cmd.h>
 #include <debug.h>
 
 #if MUSIC_MODULE_PRESENT
@@ -346,4 +357,3 @@ void cd_tickle (cd_track_t *track)
 
 #endif
 
-#endif

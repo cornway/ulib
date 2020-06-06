@@ -1,11 +1,24 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
+
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <misc_utils.h>
+#include <debug.h>
+#include <heap.h>
+#include <nvic.h>
+
+#include <audio_main.h>
 #include "../../common/int/audio_int.h"
+
+#include <bsp_cmd.h>
 #include <bsp_sys.h>
 #include <audio_main.h>
 #include <dev_io.h>
-#include <debug.h>
-
-#if defined(BSP_DRIVER)
 
 #define A_MAX_SLOTNUM 100
 #define A_MAXPATH 128
@@ -243,7 +256,7 @@ audio_wave_close (int num)
 /*internal*/
 d_bool a_wave_supported (wave_t *wave)
 {
-    a_intcfg_t *cfg = a_get_conf();
+    a_intcfg_t *cfg = audio_current_config();
 
     if (readShort(&wave->BitPerSample) != cfg->samplebits) {
         return d_false;
@@ -257,4 +270,3 @@ d_bool a_wave_supported (wave_t *wave)
     return d_true;
 }
 
-#endif

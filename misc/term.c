@@ -1,11 +1,13 @@
-#if defined(BSP_DRIVER)
-
-#include <string.h>
 #include <ctype.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
-#include "../../common/int/term_int.h"
+#include <arch.h>
 #include "../../common/int/bsp_cmd_int.h"
 
+#include <term.h>
 #include <bsp_cmd.h>
 #include <misc_utils.h>
 #include <debug.h>
@@ -536,6 +538,4 @@ int __tty_append_crlf (char * buf, int pos)
     buf[pos + 1] = '\r';
     return pos + 2;
 }
-
-#endif
 

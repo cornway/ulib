@@ -1,7 +1,9 @@
 #ifndef __BSP_API_H__
 #define __BSP_API_H__
 
-#include <../arch/arch.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 #if defined(MODULE)
 #define BSP_INDIR_API 1
@@ -37,5 +39,9 @@ typedef struct {
 extern bspapi_t *g_bspapi;
 
 bspapi_t *bsp_api_attach (void);
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*__BSP_API_H__*/

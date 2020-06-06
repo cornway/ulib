@@ -1,9 +1,16 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "../../common/int/input_int.h"
-
+#include <arch.h>
+#include <bsp_api.h>
 #include <misc_utils.h>
 #include <input_main.h>
 #include <heap.h>
+
+#include <input_main.h>
+#include "../../common/int/input_int.h"
 
 #define LR_GPOS         0
 #define LR_MASK         (0xffUL << LR_GPOS)

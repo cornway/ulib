@@ -1,11 +1,19 @@
-#if defined(BSP_DRIVER)
-
 #include <stdint.h>
-#include <stddef.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "../../common/int/audio_int.h"
-#include "audio_main.h"
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <nvic.h>
+#include <misc_utils.h>
 #include <heap.h>
+
+#include <audio_main.h>
+#include "../../common/int/audio_int.h"
+
 
 #define GAIN(x, vol, comp) (((int16_t)x * vol) / comp)
 #define GAIN_FLOAT(x, vol) (int16_t)((float)(x) * (float)vol)
@@ -355,4 +363,3 @@ uint8_t a_chanlist_try_reject_all (a_channel_head_t *chanlist)
     return chanlist->size;
 }
 
-#endif

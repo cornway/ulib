@@ -1,12 +1,26 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <misc_utils.h>
+#include <nvic.h>
+
 #include <debug.h>
+#include <heap.h>
+#include <bsp_sys.h>
+
 #include "../../common/int/boot_int.h"
 
-#include <misc_utils.h>
 #include <dev_io.h>
 #include <bconf.h>
 #include <audio_main.h>
+#include <bsp_cmd.h>
+#include <term.h>
 
 #define SFX_MAX_NAME 8
 

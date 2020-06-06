@@ -25,7 +25,14 @@
   */ 
 /* Includes ------------------------------------------------------------------*/
 
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "usbh_core.h"
+
+#include <bsp_api.h>
 #include <debug.h>
 
 

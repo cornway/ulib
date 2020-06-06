@@ -1,8 +1,9 @@
 #ifndef __BSP_SYS_H__
 #define __BSP_SYS_H__
 
-#include <bsp_api.h>
-#include <heap.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 typedef struct {
     bsp_heap_api_t heap;
@@ -62,6 +63,8 @@ int dev_hal_init (void);
 int bsp_drv_init (void);
 void dev_deinit (void);
 
+void fatal_error (char *fmt, ...) PRINTF;
+
 #endif /*BSP_INDIR_API*/
 
 void bsp_tickle (void);
@@ -103,5 +106,11 @@ const char *bsp_argv_get (int num);
 
 void bsp_argc_argv_set (const char *arg);
 int bsp_argc_argv_check (const char *arg);
+
+void bsp_tickle (void);
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*__BSP_SYS_H__*/

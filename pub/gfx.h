@@ -1,6 +1,10 @@
 #ifndef _GFX_H_
 #define _GFX_H_
 
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
 #include "stdint.h"
 
 #define GFX_COLOR_MODE_CLUT 1
@@ -47,5 +51,9 @@
 #define ARGB8888_RED				0xFFFF0000
 #define ARGB8888_GREEN				0xFF00FF00
 #define ARGB8888_BLUE				0xFF0000FF
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*_GFX_H_*/

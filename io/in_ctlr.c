@@ -1,12 +1,25 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
-#if defined(BSP_DRIVER)
+#include <config.h>
 
-#include <stdlib.h>
-#include "../../common/int/input_int.h"
+#include <arch.h>
+#include <bsp_api.h>
 #include <misc_utils.h>
 #include <input_main.h>
+#include <bsp_cmd.h>
 #include <debug.h>
+#include <dev_io.h>
+#include <gfx.h>
 #include <gfx2d_mem.h>
+
+#include <input_main.h>
+#include "../../common/int/input_int.h"
+
+#include <lcd_main.h>
+#include "../../common/int/lcd_int.h"
 
 #define TSENS_SLEEP_TIME 250
 #define JOY_FREEZE_TIME 150/*ms*/
@@ -244,4 +257,3 @@ void input_tickle (void)
     }
 }
 
-#endif

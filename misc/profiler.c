@@ -1,9 +1,13 @@
-#include "stdint.h"
-#include "string.h"
-#include <main.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
 #include <tim.h>
-
 #include <nvic.h>
 #include <debug.h>
 #include <misc_utils.h>

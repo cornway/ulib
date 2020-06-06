@@ -1,10 +1,20 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
+#include <arch.h>
+#include <bsp_api.h>
+#include <debug.h>
 #include <jpeg.h>
+#include <gfx2d_mem.h>
 #include <lcd_main.h>
 #include <misc_utils.h>
 #include <dev_io.h>
 #include <heap.h>
 #include <gui.h>
+
+#include <jpeg_utils.h>
 
 int jpeg_init (const char *conf)
 {

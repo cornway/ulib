@@ -28,11 +28,14 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if defined(BSP_DRIVER)
-
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 
+#include <arch.h>
+#include <bsp_api.h>
 #include <debug.h>
 #include <misc_utils.h>
 #include <hdmi_pub.h>

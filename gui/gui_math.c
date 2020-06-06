@@ -1,4 +1,12 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
+#include <arch.h>
+#include <bsp_api.h>
+#include <misc_utils.h>
+#include <debug.h>
 #include <gui.h>
 
 void dim_extend (dim_t *dest, dim_t *ref)

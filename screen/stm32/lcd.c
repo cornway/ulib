@@ -1,12 +1,24 @@
 /* Includes ------------------------------------------------------------------*/
+#include <stdint.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <misc_utils.h>
+#include <debug.h>
+
+#include <gfx.h>
+#include <gfx2d_mem.h>
+#include <gui.h>
+#include <lcd_main.h>
 #include "../../../common/int/lcd_int.h"
 #include "../../gui/colors.h"
 #include <../../../common/int/mpu.h>
-#include <gui.h>
 
-#include <lcd_main.h>
-#include <misc_utils.h>
 #include <debug.h>
 #include <heap.h>
 #include <bsp_sys.h>

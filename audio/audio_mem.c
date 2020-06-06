@@ -1,12 +1,20 @@
 #include <stdint.h>
-#include <stddef.h>
-#include "heap.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <nvic.h>
+#include <misc_utils.h>
+#include <heap.h>
+
 #include "audio_main.h"
 #include "../../common/int/audio_int.h"
 
 #if AUDIO_MODULE_PRESENT
-
-#if defined(BSP_DRIVER)
 
 typedef struct {
     snd_sample_t *buf;
@@ -144,6 +152,5 @@ void a_clear_master (void)
     master_track[0].dirty = d_false;
     master_track[1].dirty = d_false;
 }
-#endif
 
 #endif /*AUDIO_MODULE_PRESENT*/

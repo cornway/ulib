@@ -1,10 +1,9 @@
-#include <stdint.h>
-#include <stdarg.h>
-
 #ifndef __DEVIO_H__
 #define __DEVIO_H__
 
-#include <bsp_api.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 #define DSEEK_SET 0
 #define DSEEK_CUR 1
@@ -107,7 +106,7 @@ typedef struct bsp_io_api_s {
 #define d_time          BSP_IO_API(time)
 #define d_dirlist       BSP_IO_API(dirlist)
 
-#else
+#else /* BSP_INDIR_API */
 
 int dev_io_init (void);
 void dev_io_deinit (void);
@@ -130,10 +129,15 @@ int d_readdir (int dir, fobj_t *fobj);
 uint32_t d_time (void);
 int d_dirlist (const char *path, fiter_t *flist);
 
-#endif
+#endif /* BSP_INDIR_API */
 
 int _d_vprintf (int handle, const char *fmt, va_list argptr);
 
 #define d_vprintf _d_vprintf
 
+
+#ifdef __cplusplus
+    }
 #endif
+
+#endif /* __DEVIO_H__ */

@@ -1,10 +1,20 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
+
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <debug.h>
+#include <misc_utils.h>
 #include <heap.h>
+#include <bsp_sys.h>
 #include <jpeg.h>
 #include <gfx.h>
 #include <gui.h>
 
-#if defined(BSP_DRIVER)
 
 #define WIN_ERR(args ...) \
     dprintf("gui err : "args)
@@ -801,6 +811,4 @@ void win_jpeg_set_rawpic (pane_t *pane, void *pic, int top)
     win_jpeg_t *win = WJPEG_HANDLE(pane);
     gui_set_pic(win->com, pic, top);
 }
-
-#endif /*BSP_DRIVER*/
 

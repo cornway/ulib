@@ -1,7 +1,7 @@
-
-#if defined(BSP_DRIVER)
+#include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #include <ff.h>
 #include <ff_gen_drv.h>
@@ -14,6 +14,8 @@
 #error
 #endif
 
+#include <arch.h>
+#include <bsp_api.h>
 #include <misc_utils.h>
 #include <dev_io.h>
 #include <config.h>
@@ -536,4 +538,3 @@ static void _devio_unmount (char *path)
     FATFS_UnLinkDriver(path);
 }
 
-#endif

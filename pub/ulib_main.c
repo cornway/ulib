@@ -1,15 +1,22 @@
 /* Includes ------------------------------------------------------------------*/
-
-#include <bsp_api.h>
+#include <stdio.h>
+#include <string.h>
 #include <stdarg.h>
+#include <stdint.h>
+
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
 #include <misc_utils.h>
+#include <nvic.h>
 #include <bsp_cmd.h>
+#include <gfx2d_mem.h>
 #include <lcd_main.h>
 #include <audio_main.h>
 #include <input_main.h>
 #include <debug.h>
 #include <dev_io.h>
-#include <nvic.h>
 #include "../../common/int/mpu.h"
 #include <heap.h>
 #include <bsp_sys.h>
@@ -79,7 +86,6 @@ void (*dev_deinit_callback) (void) = NULL;
 
 int bsp_drv_init (void)
 {
-extern int32_t g_serial_rxtx_eol_sens;
     dev_io_init();
 
     bsp_stdin_register_if(con_echo);
@@ -92,9 +98,9 @@ extern int32_t g_serial_rxtx_eol_sens;
     input_bsp_init();
     profiler_init();
     cmd_register_i32(&g_dev_debug_level, "dbglvl");
-    cmd_register_i32(&g_serial_rxtx_eol_sens, "set_rxeof");
     return 0;
 }
+
 
 void dev_deinit (void)
 {

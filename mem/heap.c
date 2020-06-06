@@ -1,13 +1,20 @@
-#include <stdlib.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
-#include <misc_utils.h>
 #include <config.h>
+
 #include <arch.h>
+#include <bsp_api.h>
+#include <misc_utils.h>
+#include <debug.h>
+#include <heap.h>
+#include <bsp_sys.h>
+
 #ifdef BOOT
 #include "../../common/int/mpu.h"
 #endif
-#include <debug.h>
-#include <bsp_sys.h>
 
 void *m_pool_init (void *pool, size_t size);
 void m_init (void);

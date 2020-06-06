@@ -1,19 +1,27 @@
+#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdint.h>
 
+#include <config.h>
+
+#include <arch.h>
 #include <bsp_api.h>
+#include <debug.h>
+#include <nvic.h>
+#include <bsp_cmd.h>
 #include <audio_main.h>
 #include <misc_utils.h>
 #include <input_main.h>
 #include <dev_io.h>
+#include <gfx2d_mem.h>
 #include <lcd_main.h>
 #include <heap.h>
 #include <bsp_sys.h>
 #include <gui.h>
-#include <debug.h>
-#include <bsp_cmd.h>
+#include <term.h>
 #include <bsp_mod.h>
+#include <serial.h>
 
 bspapi_t *g_bspapi;
 

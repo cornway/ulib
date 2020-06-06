@@ -1,15 +1,25 @@
 #ifndef _INPUT_MAIN_H
 #define _INPUT_MAIN_H
 
-#include <stdint.h>
-
-
-#ifdef BOOT
-#include "../../common/int/touch.h"
+#ifdef __cplusplus
+    extern "C" {
 #endif
-#include <bsp_api.h>
 
 #define GAMEPAD_USE_FLYLOOK 1
+
+typedef enum
+{
+    TOUCH_IDLE,
+	TOUCH_PRESSED,
+	TOUCH_RELEASED
+} touch_status_t;
+
+typedef struct
+{
+	touch_status_t	status;
+	uint16_t		x;
+	uint16_t		y;
+} ts_status_t;
 
 enum {
     TS_IDLE,
@@ -115,6 +125,10 @@ void input_bind_extra (int type, int sym);
 void input_tickle (void);
 void input_proc_keys (i_event_t *evts);
 d_bool input_is_touch_avail (void);
+#endif
+
+#ifdef __cplusplus
+    }
 #endif
 
 #endif /*_INPUT_MAIN_H*/

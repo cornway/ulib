@@ -1,6 +1,9 @@
-#include <stdint.h>
-#include <misc_utils.h>
-#include <debug.h>
+#ifndef __GUI_H__
+#define __GUI_H__
+
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 #include "../gui/colors.h"
 
@@ -265,4 +268,7 @@ pane_t *win_new_jpeg (gui_t *gui, prop_t *prop, int x, int y, int w, int h);
 rawpic_t *win_jpeg_decode (pane_t *pane, const char *path);
 void win_jpeg_set_rawpic (pane_t *pane, void *pic, int top);
 
-
+#ifdef __cplusplus
+    }
+#endif
+#endif /* __GUI_H__ */

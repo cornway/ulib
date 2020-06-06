@@ -1,4 +1,10 @@
 /* Includes ------------------------------------------------------------------*/
+
+#include <stdio.h>
+
+#include <config.h>
+
+#include <arch.h>
 #include <bsp_api.h>
 #include <stdarg.h>
 #include <main.h>

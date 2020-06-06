@@ -1,10 +1,9 @@
 #ifndef _SERIAL_DEBUG_H_
 #define _SERIAL_DEBUG_H_
 
-#include <stddef.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <bsp_api.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 #define __func__ __FUNCTION__
 #define PRINTF __attribute__((format(printf, 1, 2)))
@@ -92,5 +91,9 @@ static inline int dprintf (const char *fmt, ...){return 0;}
 static inline int dvprintf (const char *fmt, va_list argptr) {return 0;}
 
 #endif /*DEBUG_SERIAL*/
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*_SERIAL_DEBUG_H_*/

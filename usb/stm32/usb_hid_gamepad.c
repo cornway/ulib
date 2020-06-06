@@ -1,14 +1,27 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "../../common/int/input_int.h"
+#include <config.h>
+
 #include "usbh_def.h"
 #include "usbh_conf.h"
 #include "usbh_core.h"
 #include "usbh_hid.h"
+
+#include <arch.h>
+#include <bsp_api.h>
 #include <misc_utils.h>
+#include <heap.h>
 #include <input_main.h>
 #include <nvic.h>
+#include <debug.h>
+#include <bsp_sys.h>
+#include <dev_io.h>
 
-#if defined(BSP_DRIVER)
+#include <input_main.h>
+#include "../../common/int/input_int.h"
 
 static void USBH_UserProcess(USBH_HandleTypeDef * phost, uint8_t id);
 
@@ -137,4 +150,3 @@ void OTG_HS_IRQHandler(void)
   HAL_HCD_IRQHandler(&hhcd);
 }
 
-#endif /*BSP_DRIVER*/

@@ -1,9 +1,9 @@
 #ifndef _LCD_MAIN_H
 #define _LCD_MAIN_H
 
-#include <gfx.h>
-#include <gfx2d_mem.h>
-#include <bsp_api.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 /*---------------------------------------------------------------------*
  *  additional includes                                                *
@@ -91,5 +91,9 @@ int vid_priv_ctl (int c, void *v);
 #endif
 
 #define LCD_PRIV_GET_TRANSP_LUT (0x1)
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*_LCD_MAIN_H*/

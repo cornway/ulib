@@ -1,12 +1,20 @@
-
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
-#include "../../common/int/audio_int.h"
-#include <nvic.h>
-
-#include <debug.h>
-#include <audio_main.h>
 
 #include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <nvic.h>
+#include <misc_utils.h>
+#include <bsp_cmd.h>
+#include <debug.h>
+#include <term.h>
+
+#include <audio_main.h>
+#include "../../common/int/audio_int.h"
 
 #if AUDIO_MODULE_PRESENT
 
@@ -120,6 +128,7 @@ void a_paint_all (d_bool force, int *pend)
         bufidx++;
     }
 }
+
 
 static void
 a_parse_config (a_intcfg_t *cfg, const char *str)
@@ -258,7 +267,7 @@ int audio_conf (const char *str)
     return 0;
 }
 
-a_intcfg_t *a_get_conf (void)
+a_intcfg_t *audio_current_config (void)
 {
     return &audio_config;
 }

@@ -1,8 +1,18 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <misc_utils.h>
+#include <debug.h>
+#include <gfx.h>
+#include <gfx2d_mem.h>
 #include <gui.h>
 #include <jpeg.h>
-#include <misc_utils.h>
 #include <lcd_main.h>
 #include <dev_io.h>
 #include <heap.h>

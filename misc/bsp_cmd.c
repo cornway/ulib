@@ -1,17 +1,24 @@
-#include <string.h>
 #include <ctype.h>
-#include <debug.h>
-#include "../../common/int/term_int.h"
-#include "../../common/int/boot_int.h"
-#include "../../common/int/bsp_cmd_int.h"
-#include <bsp_mod.h>
-#include <bsp_cmd.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
 #include <debug.h>
 #include <heap.h>
+#include <bsp_sys.h>
 #include <misc_utils.h>
-#include <dev_io.h>
 
-#if defined(BSP_DRIVER)
+#include "../../common/int/boot_int.h"
+#include "../../common/int/bsp_cmd_int.h"
+#include <term.h>
+#include <bsp_mod.h>
+#include <bsp_cmd.h>
+#include <dev_io.h>
 
 #define FLAG_EXPORT (1 << 0)
 
@@ -1150,4 +1157,3 @@ void __print_cmd_map (const cmd_func_map_t *map, int cnt)
 
 /*PUBLIC, INTERNAL============================================================*/
 
-#endif /*BSP_DRIVER*/

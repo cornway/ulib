@@ -1,15 +1,24 @@
-#include "stdint.h"
-#include "string.h"
-#include "stdarg.h"
+#include <stdint.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <bsp_api.h>
 #include <nvic.h>
 #include <tim.h>
 #include <misc_utils.h>
 #include <debug.h>
-#include <main.h>
 #include <config.h>
 #include <heap.h>
 #include <dev_io.h>
+#include <serial.h>
+#include <bsp_cmd.h>
+#include <term.h>
+
 
 #if DEBUG_SERIAL_USE_DMA
 #define SERIAL_TX_BUFFERIZED 1

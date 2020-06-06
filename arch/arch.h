@@ -3,6 +3,10 @@
 #ifndef __ARCH_CORE_H__
 #define __ARCH_CORE_H__
 
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
 #if defined(__ARCH_ARM_M4__)
 
 #define __LITTLE_ENDIAN__
@@ -156,5 +160,8 @@ static void *ReadLeP (void *_p)
 #define READ_LE_P_P(p) \
     ReadLeP((void *)(p))
 
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*__ARCH_CORE_H__*/

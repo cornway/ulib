@@ -1,7 +1,19 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
+#include <config.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+#include <nvic.h>
 #include <debug.h>
-#include "../../common/int/boot_int.h"
+#include <heap.h>
+#include <bsp_sys.h>
 #include <misc_utils.h>
+#include "../../common/int/boot_int.h"
+#include <bsp_cmd.h>
 #include <audio_main.h>
 #include <heap.h>
 
@@ -75,7 +87,7 @@ int bsp_open_wave_sfx (const char *name)
     if (sfxidx < 0) {
         return -1;
     }
-    sfx = heap_alloc_shared(sizeof(*sfx) + cachesize + 1);
+    sfx = (bsfx_t *)heap_alloc_shared(sizeof(*sfx) + cachesize + 1);
     if (!sfx) {
         return -1;
     }

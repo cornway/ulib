@@ -1,10 +1,9 @@
 #ifndef __HEAP_H__
 #define __HEAP_H__
 
-#include <stdint.h>
-#include <stdlib.h>
-
-#include <config.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 #define ALIGN(x) __attribute__((aligned(x)))
 
@@ -84,5 +83,9 @@ void heap_free (void *p);
      (api)->malloc = heap_alloc_shared_ptr; \
      (api)->free = heap_free_ptr;           \
 })
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*__HEAP_H__*/

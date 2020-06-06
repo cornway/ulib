@@ -1,6 +1,10 @@
 #ifndef __GFX_2D_MEM_H__
 #define __GFX_2D_MEM_H__
 
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
 /* TODO: declare screen_t somewhere else */
 typedef struct {
     void *buf;
@@ -55,6 +59,10 @@ void
 gfx2d_scale2x2_8bpp_filt_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
 
 void gfx2d_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d);
+
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*__GFX_2D_MEM_H__*/
 

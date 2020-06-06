@@ -1,6 +1,11 @@
-#include <string.h>
 #include <ctype.h>
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
+#include <arch.h>
+#include <bsp_api.h>
 #include <misc_utils.h>
 #include <heap.h>
 

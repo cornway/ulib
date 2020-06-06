@@ -1,10 +1,9 @@
 #ifndef _AUDIO_MAIN_H
 #define _AUDIO_MAIN_H
 
-#include <stdint.h>
-#include <config.h>
-#include <nvic.h>
-#include <bsp_api.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 #define AUDIO_SIZE_TO_MS(rate, size) (((long long)(size) * 1000) / (rate))
 #define AUDIO_MS_TO_SIZE(rate, ms) (((((rate) << 2) / 1000) * (ms)) >> 2)
@@ -171,5 +170,8 @@ int cd_playing (void);
 void cd_tickle (void);
 #endif
 
+#ifdef __cplusplus
+    }
+#endif
 
 #endif /*_AUDIO_MAIN_H*/

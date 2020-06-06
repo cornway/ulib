@@ -1,8 +1,14 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
-#include <gfx.h>
-#include <gfx2d_mem.h>
+#include <bsp_api.h>
 #include <misc_utils.h>
 #include <heap.h>
+#include <gfx.h>
+#include <gfx2d_mem.h>
+#include <lcd_main.h>
 
 void gfx2d_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d)
 {

@@ -23,8 +23,14 @@
   ******************************************************************************
   */ 
 /* Includes ------------------------------------------------------------------*/
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "usbh_ctlreq.h"
+
+#include <bsp_api.h>
 #include <debug.h>
 
 /** @addtogroup USBH_LIB

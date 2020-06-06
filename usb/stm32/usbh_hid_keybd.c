@@ -36,8 +36,6 @@
 #include "usbh_hid_keybd.h"
 #include "usbh_hid_parser.h"
 
-#if defined(BSP_DRIVER)
-
 /** @addtogroup USBH_LIB
 * @{
 */
@@ -421,6 +419,5 @@ uint8_t USBH_HID_GetASCIICode(HID_KEYBD_Info_TypeDef *info)
   return output;  
 }
 
-#endif /*BSP_DRIVER*/
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 

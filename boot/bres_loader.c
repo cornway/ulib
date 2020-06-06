@@ -1,11 +1,24 @@
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
-#include <debug.h>
-#include "../../common/int/boot_int.h"
-#include <bsp_cmd.h>
+#include <config.h>
 
+#include <arch.h>
+#include <bsp_api.h>
+#include <debug.h>
+#include <heap.h>
+#include <bsp_sys.h>
+#include <misc_utils.h>
+
+#include "../../common/int/boot_int.h"
+
+#include <bsp_cmd.h>
 #include <misc_utils.h>
 #include <dev_io.h>
+#include <bsp_cmd.h>
+#include <term.h>
 #include <bconf.h>
 
 typedef struct {

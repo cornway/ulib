@@ -1,3 +1,7 @@
+#include <stdint.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 #include <misc_utils.h>
 #include <hdmi_pub.h>

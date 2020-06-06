@@ -45,12 +45,16 @@
   EndBSPDependencies */
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdint.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "usbh_hid.h"
 #include "usbh_hid_parser.h"
-#include "../../../common/int/input_int.h"
-#include <debug.h>
 
-#if defined(BSP_DRIVER)
+#include <bsp_api.h>
+#include <debug.h>
 
 /** @addtogroup USBH_LIB
 * @{
@@ -821,8 +825,6 @@ uint16_t  fifo_write(FIFO_TypeDef * f, const void * buf, uint16_t  nbytes)
   f->lock = 0;
   return nbytes;
 }
-
-#endif /*BSP_DRIVER*/
 
 /**
 * @}

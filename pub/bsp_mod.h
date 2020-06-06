@@ -1,8 +1,9 @@
 #ifndef __BSP_MOD_INT_H__
 #define __BSP_MOD_INT_H__
 
-#include <bsp_api.h>
-#include <heap.h>
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
 typedef struct bsp_mod_api_s {
     bspdev_t dev;
@@ -38,5 +39,9 @@ const void *bspmod_get_api (const char *name, int *apisize);
 
 #endif /*BSP_INDIR_API*/
 
-#endif /*__BSP_MOD_INT_H__*/
 
+#ifdef __cplusplus
+    }
+#endif
+
+#endif /*__BSP_MOD_INT_H__*/
