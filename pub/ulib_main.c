@@ -83,10 +83,12 @@ extern int32_t g_serial_rxtx_eol_sens;
     dev_io_init();
 
     bsp_stdin_register_if(con_echo);
+    heap_init();
     cmd_init();
+    vid_init();
+    mpu_init();
 
     audio_init();
-    vid_init();
     input_bsp_init();
     profiler_init();
     cmd_register_i32(&g_dev_debug_level, "dbglvl");
@@ -120,13 +122,9 @@ int bsp_drv_main (void)
     int argc = 0;
 
     dev_hal_init();
-    g_bspapi = bsp_api_attach();
-    mpu_init();
-    heap_init();
-
     bsp_drv_init();
-
     VID_PreConfig();
+    g_bspapi = bsp_api_attach();
     mainloop(argc, argv);
 
     return 0;
