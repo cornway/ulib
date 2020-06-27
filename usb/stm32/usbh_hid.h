@@ -27,10 +27,6 @@
 #ifndef __USBH_HID_H
 #define __USBH_HID_H
 
-#ifdef __cplusplus
- extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_core.h"
 #include "usbh_hid_mouse.h"
@@ -326,10 +322,6 @@ uint16_t  fifo_write(FIFO_TypeDef * f, const void * buf, uint16_t  nbytes);
 /**
   * @}
   */ 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __USBH_HID_H */
 

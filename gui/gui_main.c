@@ -9,30 +9,23 @@
 #include <bsp_api.h>
 #include <misc_utils.h>
 #include <debug.h>
+#include <heap.h>
 #include <gfx.h>
 #include <gfx2d_mem.h>
 #include <gui.h>
 #include <jpeg.h>
 #include <lcd_main.h>
 #include <dev_io.h>
-#include <heap.h>
 #include <bsp_cmd.h>
 
-extern void gui_rect_fill_HAL (dim_t *dest, dim_t *rect, rgba_t color);
-extern void gui_com_fill_HAL (component_t *com, rgba_t color);
-extern int gui_draw_string_HAL (component_t *com, int line,
-                                rgba_t textcolor, const char *str, int txtmode);
-extern void gui_get_font_prop_HAL (fontprop_t *prop, const void *_font);
-extern const void *gui_get_font_4_size_HAL (gui_t *gui, int size, int bestmatch);
-
-void gui_get_font_prop (fontprop_t *prop, const void *font)
+void gui_get_font_prop (gui_t *gui, fontprop_t *prop, const void *font)
 {
-    gui_get_font_prop_HAL(prop, font);
+    gui->bspapi.font_prop(prop, font);
 }
 
-const void *gui_get_font_4_size (gui_t *gui, int size, int bestmatch)
+const void *gui_get_font_4_size (gui_t *gui, int size)
 {
-    return gui_get_font_4_size_HAL(gui, size, bestmatch);
+    return gui->bspapi.get_font(gui, size);
 }
 
 #define gui_error(fmt, args ...) \
@@ -90,7 +83,7 @@ gui_iterate_all (gui_t *gui, void *user, int (*h) (component_t *com, void *user)
 static inline void
 gui_set_dirty (gui_t *gui, dim_t *dim)
 {
-    gui_int_t *gui_int = gui->ctxt;
+    gui_int_t *gui_int = (gui_int_t *)gui->ctxt;
     assert(gui_int);
 
     dim_extend(&gui_int->dirtybox, dim);
@@ -100,7 +93,7 @@ gui_set_dirty (gui_t *gui, dim_t *dim)
 static inline d_bool
 gui_is_com_durty (gui_t *gui, component_t *com)
 {
-    gui_int_t *gui_int = gui->ctxt;
+    gui_int_t *gui_int = (gui_int_t *)gui->ctxt;
     assert(gui_int);
 
     return dim_check_intersect(&gui_int->activebox, &com->dim);
@@ -109,7 +102,7 @@ gui_is_com_durty (gui_t *gui, component_t *com)
 static inline void
 gui_mark_dirty (gui_t *gui)
 {
-    gui_int_t *gui_int = gui->ctxt;
+    gui_int_t *gui_int = (gui_int_t *)gui->ctxt;
     assert(gui_int);
 
     if (!gui_int->dirty) {
@@ -134,7 +127,7 @@ void gui_pane_set_dirty (gui_t *gui, pane_t *pane)
 static inline void
 gui_post_draw (gui_t *gui)
 {
-    gui_int_t *gui_int = gui->ctxt;
+    gui_int_t *gui_int = (gui_int_t *)gui->ctxt;
     assert(gui_int);
 
     d_memzero(&gui_int->activebox, sizeof(gui_int->activebox));
@@ -146,24 +139,23 @@ void gui_init (gui_t *gui, const char *name, uint8_t framerate,
     char temp[GUI_MAX_NAME];
 
     d_memzero(gui, sizeof(*gui));
+    d_memcpy(&gui->bspapi, bspapi, sizeof(gui->bspapi));
 
-    gui->font = gui_get_font_4_size(gui, 20, 1);
-
+    gui->font = gui_get_font_4_size(gui, 20);
     gui->dim.x = dim->x;
     gui->dim.y = dim->y;
     gui->dim.w = dim->w;
     gui->dim.h = dim->h;
     gui->framerate = framerate;
     gui->dbglvl = DBG_WARN;
-    snprintf(gui->name, sizeof(gui->name), "%s", name);
 
+    snprintf(gui->name, sizeof(gui->name), "%s", name);
     snprintf(temp, sizeof(temp), "%s_%s", name, "fps");
     cmd_register_i32(&gui->framerate, temp);
     
     snprintf(temp, sizeof(temp), "%s_%s", name, "dbglvl");
     cmd_register_i32(&gui->dbglvl, temp);
 
-    d_memcpy(&gui->bspapi, bspapi, sizeof(gui->bspapi));
     gui->ctxt = &gui_int;
     gui_set_dirty(gui, &gui->dim);
     gui_mark_dirty(gui);
@@ -198,7 +190,7 @@ pane_t *gui_create_pane (gui_t *gui, const char *name, int extra)
         allocsize += extra;
     }
     allocsize = ROUND_UP(allocsize, 4);
-    pane = gui_bsp_alloc(gui, allocsize);
+    pane = (pane_t *)gui_bsp_alloc(gui, allocsize);
     assert(pane);
     d_memzero(pane, allocsize);
     snprintf(pane->name, namelen + 1, "%s", name);
@@ -262,7 +254,7 @@ component_t *gui_create_comp (gui_t *gui, const char *name, const char *text)
 
     allocsize = sizeof(*com) + namelen + 1 + textlen + 1;
     allocsize = ROUND_UP(allocsize, sizeof(uint32_t));
-    com = gui_bsp_alloc(gui, allocsize);
+    com = (component_t *)gui_bsp_alloc(gui, allocsize);
     assert(com && name);
     d_memzero(com, allocsize);
     snprintf(com->name, sizeof(com->name), "%s", name);
@@ -320,8 +312,9 @@ void gui_com_clear (component_t *com)
 
 void gui_com_fill (component_t *com, rgba_t color)
 {
-    gui_set_dirty(com->parent->parent, &com->dim);
-    gui_com_fill_HAL(com, color);
+    gui_t *gui = com->parent->parent;
+    gui_set_dirty(gui, &com->dim);
+    gui->bspapi.fill_comp(com, color);
 }
 
 void gui_set_text (component_t *com, const char *text, int x, int y)
@@ -357,17 +350,19 @@ int gui_apendxy (component_t *com, int x, int y, const char *fmt, ...)
 
 int gui_draw_string (component_t *com, int line, rgba_t textcolor, const char *str)
 {
-    return gui_draw_string_HAL(com, line, textcolor, str, GUI_LEFT_ALIGN);
+    gui_t *gui = com->parent->parent;
+    return gui->bspapi.string_at(com, line, textcolor, str, GUI_LEFT_ALIGN);
 }
 
 int gui_draw_string_c (component_t *com, int line, rgba_t textcolor, const char *str)
 {
-    return gui_draw_string_HAL(com, line, textcolor, str, GUI_CENTER_ALIGN);
+    gui_t *gui = com->parent->parent;
+    return gui->bspapi.string_at(com, line, textcolor, str, GUI_CENTER_ALIGN);
 }
 
 void gui_rect_fill (gui_t *gui, dim_t *dest, dim_t *rect, rgba_t color)
 {
-    gui_rect_fill_HAL(dest, rect, color);
+    gui->bspapi.fill_rect(dest, rect, color);
     gui_set_dirty(gui, rect);
 }
 

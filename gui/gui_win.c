@@ -15,9 +15,7 @@
 #include <gfx.h>
 #include <gui.h>
 
-
-#define WIN_ERR(args ...) \
-    dprintf("gui err : "args)
+#define WIN_ERR(args ...) dprintf("gui err : "args)
 
 typedef enum {
     WINNONE,
@@ -55,7 +53,7 @@ win_new_border (gui_t *gui)
 
 static inline win_t *WIN_HANDLE (void *_pane)
 {
-    pane_t *pane = _pane;
+    pane_t *pane = (pane_t *)_pane;
     win_t *win = (win_t *)(pane + 1);
     assert(win->pane == pane);
     return win;
@@ -388,8 +386,7 @@ static void wcon_lsetup_lines (win_con_t *con, rgba_t textcolor)
 }
 
 static win_con_t *
-wcon_alloc (gui_t *gui, const char *name,
-                const void *font, int x, int y, int w, int h)
+wcon_alloc (gui_t *gui, const char *name, const void *font, int x, int y, int w, int h)
 {
     uint32_t wmax = 1, hmax = 1;
     int textsize, textoff;
@@ -398,7 +395,7 @@ wcon_alloc (gui_t *gui, const char *name,
     fontprop_t fprop;
     int winmemsize = sizeof(win_con_t);
 
-    gui_get_font_prop(&fprop, font);
+    gui_get_font_prop(gui, &fprop, font);
 
     if (fprop.w && fprop.h) {
         wmax = w / fprop.w;
@@ -620,7 +617,7 @@ static int win_con_repaint (pane_t *pane, component_t *com, void *user)
     con = WCON_HANDLE(pane);
     assert(com == con->com);
 
-    gui_get_font_prop(&fprop, com->font);
+    gui_get_font_prop(pane->parent, &fprop, com->font);
     line = con->linehead;
 
     while (line) {
@@ -740,17 +737,17 @@ static int win_prog_repaint (pane_t *pane, component_t *com, void *user)
 {
     win_progress_t *win = WPROG_HANDLE(pane);
     dim_t dim = {0, 0, com->dim.w, com->dim.h};
-    int compl, left;
+    int comp_left, left;
 
     if (win->percent == 100) {
         gui_com_fill(com, COLOR_BLUE);
     } else if (win->percent >= 0) {
-        compl = (dim.w * win->percent) / 100;
-        left = dim.w - compl;
+        comp_left = (dim.w * win->percent) / 100;
+        left = dim.w - comp_left;
 
-        dim.w = compl;
+        dim.w = comp_left;
         gui_rect_fill(pane->parent, &com->dim, &dim, COLOR_BLUE);
-        dim.x = compl;
+        dim.x = comp_left;
         dim.w = left;
         gui_rect_fill(pane->parent, &com->dim, &dim, COLOR_WHITE);
     } else {
@@ -803,12 +800,12 @@ rawpic_t *win_jpeg_decode (pane_t *pane, const char *path)
     if (NULL == win->cache) {
         return NULL;
     }
-    return jpeg_2_rawpic(path, win->cache, memsize);
+    return (rawpic_t *)jpeg_2_rawpic(path, win->cache, memsize);
 }
 
 void win_jpeg_set_rawpic (pane_t *pane, void *pic, int top)
 {
     win_jpeg_t *win = WJPEG_HANDLE(pane);
-    gui_set_pic(win->com, pic, top);
+    gui_set_pic(win->com, (rawpic_t *)pic, top);
 }
 

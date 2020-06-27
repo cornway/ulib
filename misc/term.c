@@ -31,8 +31,6 @@ static cmd_func_t *last_rx_clbk = &serial_rx_clbk[0];
 static cmd_func_t serial_tx_clbk[INOUT_MAX_FUNC] = {NULL};
 static cmd_func_t *last_tx_clbk = &serial_tx_clbk[0];
 
-inout_clbk_t inout_early_clbk = NULL;
-
 int str_remove_spaces (char *str)
 {
     char *dest = str, *src = str;
@@ -315,32 +313,11 @@ __bsp_stdout_iter_fwd_raw
                 (cmd_func_t *_begin, cmd_func_t *end,
                 int argc, const char **argv);
 
-cmd_func_t stdin_redir = NULL;
-
-cmd_func_t bsp_stdin_stash (cmd_func_t func)
-{
-    cmd_func_t tmp = stdin_redir;
-    stdin_redir = func;
-    return tmp;
-}
-
-cmd_func_t bsp_stdin_unstash (cmd_func_t func)
-{
-    cmd_func_t tmp = stdin_redir;
-    stdin_redir = func;
-    return tmp;
-}
-
 int bsp_inout_forward (char *buf, int size, char dir)
 {
-    int offset = 0, err = 0;
+    int err = 0;
     const char *bufptr = (const char *)buf;
 
-    if (dir == '<' && stdin_redir) {
-        offset = size;
-        size = stdin_redir(size, &bufptr);
-        offset = offset - size;
-    }
     if (!size) {
         return CMDERR_OK;
     }
@@ -515,7 +492,48 @@ void hexdump (const void *data, int bits, int len, int rowlength)
     __hexdump(__printfmt, -1, (const uint32_t *)data, bits, len, rowlength);
 }
 
+void binprint (const void *data, int bits)
+{
+    int i;
+    uint32_t word = *(uint32_t *)data;
+
+    switch (bits) {
+        case 8:
+        case 16:
+        case 32:
+            break;
+        default:
+            assert(0);
+    }
+    __printfmt(-1, "0b");
+    for (i = 0; i < bits; i++) {
+        if (word & (1 << i)) {
+            __printfmt(-1, "1");
+        } else {
+            __printfmt(-1, "0");
+        }
+    }
+    __printfmt(-1, "\n");
+}
+
 void __hexdump (printfmt_t printfmt, int stream,
+                  const void *data, int bits, int len, int rowlength)
+{
+    switch(bits) {
+        case 8: __hexdump_u8(printfmt, -1, (uint8_t *)data, len, rowlength);
+        break;
+        case 16: dprintf("hexdump_u16: not yet");
+        break;
+        case 32: __hexdump_le_u32(printfmt, -1, (uint32_t *)data, len, rowlength);
+        break;
+        case 64: dprintf("hexdump_u64: not yet");
+        break;
+        default: assert(0);
+        break;
+    }
+}
+
+void __bindump (printfmt_t printfmt, int stream,
                   const void *data, int bits, int len, int rowlength)
 {
     switch(bits) {

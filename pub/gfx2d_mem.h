@@ -49,15 +49,10 @@ __gfx2d_to_screen (screen_t *s, gfx_2d_buf_t *g)
     s->height = g->htotal;
 }
 
-void
-gfx2d_scale2x2_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
-
-void
-gfx2d_scale3x3_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
-
-void
-gfx2d_scale2x2_8bpp_filt_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
-
+void gfx2d_scale2x2_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
+void gfx2d_scale3x3_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
+void gfx2d_scale2x2_8bpp_filt_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
+void gfx2d_scale2x2_8bpp_filt (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
 void gfx2d_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d);
 
 #ifdef __cplusplus

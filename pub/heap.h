@@ -25,6 +25,8 @@ int cs_check_symb (void *symb);
 void heap_init (void);
 void heap_deinit (void);
 size_t heap_avail (void);
+void heap_dump (void);
+void heap_stat (void);
 
 #if HEAP_TRACE
 
@@ -77,6 +79,9 @@ void heap_free (void *p);
 #define heap_api_free(api, p) (api)->free(p)
 
 #endif /*#HEAP_TRACE*/
+
+void *dma_alloc (size_t size);
+void *heap_alloc_shared_align (size_t size, size_t align);
 
 #define heap_set_api_shared(api)            \
 ({                                          \

@@ -65,7 +65,7 @@ void *jpeg_2_rawpic (const char *path, void *tmpbuf, uint32_t bufsize)
     jpeg_decode(&info, tmpbuf, cache, size);
 
     size = info.w * info.h * 4;
-    rawpic = heap_alloc_shared(size + sizeof(*rawpic));
+    rawpic = (rawpic_t *)heap_alloc_shared(size + sizeof(*rawpic));
     if (!rawpic) {
         return NULL;
     }

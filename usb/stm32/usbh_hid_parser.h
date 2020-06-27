@@ -27,10 +27,6 @@
 #ifndef __USBH_HID_PARSER_H
 #define __USBH_HID_PARSER_H
 
-#ifdef __cplusplus
- extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_hid.h"
 #include "usbh_hid_usage.h"
@@ -79,10 +75,6 @@ uint32_t HID_WriteItem(HID_Report_ItemTypedef *ri, uint32_t value, uint8_t ndx);
 /**
   * @}
   */ 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __USBH_HID_PARSER_H */
 

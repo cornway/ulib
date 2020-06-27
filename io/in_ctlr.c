@@ -24,12 +24,6 @@
 #define TSENS_SLEEP_TIME 250
 #define JOY_FREEZE_TIME 150/*ms*/
 
-/*
-extern bool menuactive;
-extern bool automapactive;
-extern int followplayer;
-FIXME :
-*/
 extern int joypad_read (int8_t *pads);
 
 static int bsp_input_errno = 0;
@@ -78,7 +72,7 @@ static int ts_attach_keys (uint8_t tsmap[3][4], const kbdmap_t kbdmap[JOY_STD_MA
     tsmap[2][2] = kbdmap[JOY_K3].key;
     tsmap[2][3] = kbdmap[JOY_K2].key;
 
-    vid_get_screen(&screen, 0);
+    vid_wh(&screen);
     xmax = screen.width;
     ymax = screen.height;
     x_keyzone_size = xmax / 4;
@@ -115,7 +109,7 @@ ts_get_key (int x, int y)
 
 d_bool input_is_touch_avail (void)
 {
-    return input_hal_touch_avail();
+    return screen_hal_ts_available();
 }
 
 static inline int

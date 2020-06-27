@@ -218,34 +218,12 @@ bres_exec_list_link (exec_desc_t *bin)
     bres_exec_list_size++;
 }
 
-static void
-bres_exec_list_unlink (exec_desc_t *del)
-{
-    exec_desc_t *bin = bres_exec_list_head, *prev = NULL;
-
-    while (bin) {
-
-        if (del == bin) {
-            if (prev) {
-                prev->next = bin->next;
-            } else {
-                bres_exec_list_head = bin->next;
-            }
-            bres_exec_list_size--;
-            heap_free(bin);
-            break;
-        }
-        prev = bin;
-        bin = bin->next;
-    }
-}
-
 static void bres_exec_pack_list (void)
 {
     int i = 0;
     exec_desc_t *bin = bres_exec_list_head;
 
-    bres_exec_packed_list_ptr = heap_malloc(sizeof(exec_desc_t *) * (bres_exec_list_size + 1));
+    bres_exec_packed_list_ptr = (exec_desc_t **)heap_malloc(sizeof(exec_desc_t *) * (bres_exec_list_size + 1));
     assert(bres_exec_packed_list_ptr);
 
     while (bin) {

@@ -27,6 +27,8 @@
 #include <jpeg.h>
 #include <bconf.h>
 
+#define GUI_FPS (25)
+
 static gui_t gui;
 static pane_t *pane_console, *pane_selector,
               *pane_alert, *pane_progress,
@@ -44,13 +46,7 @@ typedef struct {
 
 static int b_execute_boot (const char *path);
 
-static const b_exec_type_func_t b_exec_type_func_tbl[] =
-{
-    [BIN_FILE] = {b_execute_boot, BIN_FILE, ".bin"},
-    [BIN_LINK] = {b_execute_link, BIN_LINK, ".als"},
-    [BIN_CMD] =  {b_execute_boot, BIN_CMD,  ".cmd"},
-    {NULL, BIN_MAX, ""},
-};
+static b_exec_type_func_t b_exec_type_func_tbl[BIN_MAX];
 
 complete_ind_t complete_ind_clbk = NULL;
 
@@ -247,7 +243,7 @@ b_alert_accept_clbk (const component_t *com)
     gui_pane_set_dirty(&gui, pane_progress);
     gui_select_pane(&gui, pane_progress);
 
-    ret = b_execute_app(bres_get_executable_for_num(b_exec_selector_cursor));
+    ret = b_execute_app((exec_desc_t *)bres_get_executable_for_num(b_exec_selector_cursor));
     if (ret != CMDERR_OK) {
         bsfx_title_music(1, 40);
     } else {
@@ -273,7 +269,7 @@ b_gui_input_event_hanlder (pane_t *pane, component_t *com, void *user)
         case GUI_KEY_RETURN:
         {
             char buf[CMD_MAX_BUF];
-            exec_desc_t *bin = bres_get_executable_for_num(b_exec_selector_cursor);
+            exec_desc_t *bin = (exec_desc_t *)bres_get_executable_for_num(b_exec_selector_cursor);
 
             bsfx_start_sound(SFX_WARNING, 100);
             snprintf(buf, sizeof(buf), "Open :\n\'%s\'\nApplicarion?", bin->name);
@@ -313,7 +309,7 @@ void boot_gui_preinit (void)
 
     prop.bcolor = COLOR_BLACK;
     prop.name = "console";
-    prop.fontprop.font = gui_get_font_4_size(&gui, 16, 1);
+    prop.fontprop.font = gui_get_font_4_size(&gui, 16);
     pane_console = win_new_console(&gui, &prop, gui.dim.x, gui.dim.y, gui.dim.w, gui.dim.h);
     gui_select_pane(&gui, pane_console);
     win_set_user_clbk(pane_console, b_console_user_clbk);
@@ -334,7 +330,7 @@ void boot_gui_preinit (void)
     prop.name = "progbar1";
     prop.fcolor = COLOR_BLACK;
     prop.bcolor = COLOR_WHITE;
-    prop.fontprop.font = gui_get_font_4_size(&gui, 24, 1);
+    prop.fontprop.font = gui_get_font_4_size(&gui, 24);
     pane_progress = win_new_progress(&gui, &prop, dim.x, dim.y, dim.w, dim.h);
 
     prop.name = "pane_jpeg";
@@ -355,9 +351,26 @@ void b_dev_deinit_callback (void)
     gui_destroy(&gui);
 }
 
+void boot_tbl_stuff_init (void)
+{
+    b_exec_type_func_tbl[BIN_FILE].func = b_execute_boot;
+    b_exec_type_func_tbl[BIN_FILE].file_type = BIN_FILE;
+    b_exec_type_func_tbl[BIN_FILE].file_ext = ".bin";
+
+    b_exec_type_func_tbl[BIN_LINK].func = b_execute_link;
+    b_exec_type_func_tbl[BIN_LINK].file_type = BIN_LINK;
+    b_exec_type_func_tbl[BIN_LINK].file_ext = ".als";
+
+    b_exec_type_func_tbl[BIN_CMD].func = b_execute_boot;
+    b_exec_type_func_tbl[BIN_CMD].file_type = BIN_FILE;
+    b_exec_type_func_tbl[BIN_CMD].file_ext = ".cmd";
+}
+
 int boot_main (int argc, const char **argv)
 {
 extern void (*dev_deinit_callback) (void);
+
+    boot_tbl_stuff_init();
 
     jpeg_init("");
     boot_gui_preinit();
@@ -426,27 +439,20 @@ void boot_deliver_input_event (void *_evt)
     }
 }
 
-static bsp_heap_api_t heap;
-
 static void boot_gui_bsp_init (gui_t *gui)
 {
-#define GUI_FPS (25)
     screen_t s = {0};
     dim_t dim = {0};
-
     gui_bsp_api_t bspapi = {0};
 
-    heap.malloc = heap_alloc_shared_ptr;
-    heap.free = heap_free_ptr;
-
-    bspapi.mem = &heap;
+    gui_draw_attach(&bspapi);
+    bspapi.mem.malloc = heap_alloc_shared_ptr;
+    bspapi.mem.free = heap_free_ptr;
 
     vid_wh(&s);
     dim.w = s.width;
     dim.h = s.height;
 
     gui_init(gui, "gui", GUI_FPS, &dim, &bspapi);
-extern int boot_input_init (void);
     boot_input_init();
-#undef GUI_FPS
 }

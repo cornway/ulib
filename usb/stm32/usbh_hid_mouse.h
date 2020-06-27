@@ -27,10 +27,6 @@
 #ifndef __USBH_HID_MOUSE_H
 #define __USBH_HID_MOUSE_H
 
-#ifdef __cplusplus
- extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_hid.h"
 
@@ -98,10 +94,6 @@ HID_MOUSE_Info_TypeDef *USBH_HID_GetMouseInfo(USBH_HandleTypeDef *phost);
 /**
   * @}
   */ 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __USBH_HID_MOUSE_H */
 

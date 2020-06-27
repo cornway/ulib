@@ -27,10 +27,6 @@
 #ifndef __USBH_HID_KEYBD_H
 #define __USBH_HID_KEYBD_H
 
-#ifdef __cplusplus
- extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
 #include "usbh_hid.h"
 
@@ -297,10 +293,6 @@ uint8_t USBH_HID_GetASCIICode(HID_KEYBD_Info_TypeDef *info);
 /**
   * @}
   */ 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __USBH_HID_KEYBD_H */
 

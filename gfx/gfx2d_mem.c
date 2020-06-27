@@ -84,7 +84,7 @@ __gfx2d_scale2x2_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
 void
 gfx2d_scale2x2_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
 {
-    if (cs_check_symb(__gfx2d_scale2x2_8bpp)) {
+    if (cs_check_symb((void *)__gfx2d_scale2x2_8bpp)) {
         __gfx2d_scale2x2_8bpp(dest, src);
     }
 }
@@ -152,10 +152,9 @@ __gfx2d_scale2x2_8bpp_F (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
     }
 }
 
-void
-gfx2d_scale2x2_8bpp_filt (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
+void gfx2d_scale2x2_8bpp_filt (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
 {
-    if (cs_check_symb(__gfx2d_scale2x2_8bpp)) {
+    if (cs_check_symb((void *)__gfx2d_scale2x2_8bpp)) {
         __gfx2d_scale2x2_8bpp_F(lut, dest, src);
     }
 }
@@ -221,7 +220,7 @@ __gfx2d_scale3x3_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
 void
 gfx2d_scale3x3_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
 {
-    if (cs_check_symb(__gfx2d_scale3x3_8bpp)) {
+    if (cs_check_symb((void *)__gfx2d_scale3x3_8bpp)) {
         __gfx2d_scale3x3_8bpp(dest, src);
     }
 }
@@ -264,7 +263,7 @@ __gfx2d_scale2x2_8bpp_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
 void
 gfx2d_scale2x2_8bpp_filt_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
 {
-    if (cs_check_symb(__gfx2d_scale2x2_8bpp_Bi)) {
+    if (cs_check_symb((void *)__gfx2d_scale2x2_8bpp_Bi)) {
         __gfx2d_scale2x2_8bpp_Bi(lut, dest, src);
     }
 }

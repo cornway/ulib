@@ -49,7 +49,7 @@ typedef struct bsp_video_api_s {
     int (*win_cfg) (screen_conf_t *);
     void (*set_clut) (void *, uint32_t);
     void (*update) (screen_t *);
-    void (*direct) (int, int, screen_t *);
+    void (*direct) (int, int, screen_t *, int);
     void (*vsync) (int);
     void (*input_align) (int *, int *);
 } bsp_video_api_t;
@@ -88,6 +88,8 @@ int vid_copy (screen_t *dest, screen_t *src);
 int vid_set_keying (uint32_t color, int layer);
 int vid_gfx2d_direct (int x, int y, gfx_2d_buf_t *src, int laynum);
 int vid_priv_ctl (int c, void *v);
+void vid_print_info (void);
+
 #endif
 
 #define LCD_PRIV_GET_TRANSP_LUT (0x1)

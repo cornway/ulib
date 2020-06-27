@@ -19,11 +19,13 @@
 void *m_pool_init (void *pool, size_t size);
 void m_init (void);
 void *m_malloc (void *pool, size_t size);
+void *m_malloc_align (void *pool, uint32_t size, uint32_t align);
 void m_free (void *p);
 size_t m_avail (void *pool);
 
 static void *heap_shared_pool;
 static void *heap_pool;
+static void *dma_pool;
 
 #if HEAP_TRACE
 #define heap_dbg(args...) \
@@ -98,7 +100,7 @@ void heap_dump (void)
     }
 }
 
-void heap_init (void)
+void heap_stat (void)
 {
     arch_word_t heap_mem, heap_size;
     arch_word_t sp_mem, sp_size;
@@ -109,16 +111,40 @@ void heap_init (void)
     dprintf("Memory :\n");
     dprintf("stack : <0x%p> + %u bytes\n", (void *)sp_mem, sp_size);
     dprintf("heap : <0x%p> + %u bytes\n", (void *)heap_mem, heap_size);
+#ifdef BOOT
+    arch_get_usr_heap(&heap_mem, &heap_size);
+    dprintf("user heap : <0x%p> + %u bytes\n", (void *)heap_mem, heap_size);
+#endif
+}
+
+void heap_init (void)
+{
+    arch_word_t heap_mem, heap_size;
+    arch_word_t sp_mem, sp_size;
+    void *dma_pool_buf = NULL;
+    size_t dma_pool_size = 0x8000;
+
+    arch_get_heap(&heap_mem, &heap_size);
 
     m_init();
     heap_pool = m_pool_init((void *)heap_mem, heap_size);
 
 #ifdef BOOT
     arch_get_usr_heap(&heap_mem, &heap_size);
-    dprintf("user heap : <0x%p> + %u bytes\n", (void *)heap_mem, heap_size);
     heap_shared_pool = m_pool_init((void *)heap_mem, heap_size);
+    dma_pool_buf = m_malloc_align(heap_pool, dma_pool_size, dma_pool_size);
+    assert(dma_pool_buf);
+    dma_pool = m_pool_init(dma_pool_buf, dma_pool_size);
+    if (mpu_lock((arch_word_t)dma_pool_buf, &dma_pool_size, "-xsb") < 0) {
+        assert(0);
+    }
+    arch_get_stack(&sp_mem, &sp_size);
+    if (mpu_lock(sp_mem, &sp_size, "-xsb") < 0) {
+        assert(0);
+    }
 #else
     heap_shared_pool = heap_pool;
+    dma_pool = NULL;
 #endif /*BOOT*/
 }
 
@@ -224,14 +250,15 @@ void heap_free (void *p)
 
 #endif /*HEAP_TRACE*/
 
-void *malloc (size_t size)
+void *dma_alloc (size_t size)
 {
-    assert(0);
-    return NULL;
+    return m_malloc(dma_pool, size);
 }
 
-void free (void *p)
+void *heap_alloc_shared_align (size_t size, size_t align)
 {
-    assert(0);
+    return m_malloc_align(heap_shared_pool, size, align);
 }
+
+
 

@@ -1,10 +1,6 @@
 #ifndef __BSP_SYS_H__
 #define __BSP_SYS_H__
 
-#ifdef __cplusplus
-    extern "C" {
-#endif
-
 typedef struct {
     bsp_heap_api_t heap;
 } bsp_user_api_t;
@@ -59,6 +55,7 @@ void *sys_user_alloc (int size);
 void sys_user_free (void *p);
 int  sys_user_attach (bsp_user_api_t *api);
 
+int dev_hal_preinit (void);
 int dev_hal_init (void);
 int bsp_drv_init (void);
 void dev_deinit (void);
@@ -106,11 +103,6 @@ const char *bsp_argv_get (int num);
 
 void bsp_argc_argv_set (const char *arg);
 int bsp_argc_argv_check (const char *arg);
-
 void bsp_tickle (void);
-
-#ifdef __cplusplus
-    }
-#endif
 
 #endif /*__BSP_SYS_H__*/

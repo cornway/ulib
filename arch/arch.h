@@ -76,6 +76,8 @@ extern void __arch_startup (void);
 #define arch_dsb __DSB
 #endif
 
+extern void UserExceptionH (void *stack);
+
 static int16_t ReadLeI16 (void *_p)
 {
     uint8_t *p = (uint8_t *)_p;

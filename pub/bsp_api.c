@@ -216,7 +216,7 @@ bspapi_t *bsp_api_attach (void)
     BSP_SYS_API(user_free)  = sys_user_free;
     BSP_SYS_API(user_api_attach) = sys_user_attach;
 
-    BSP_DBG_API(dev.init)   = uart_hal_tty_init;
+    BSP_DBG_API(dev.init)   = hal_tty_vcom_attach;
     BSP_DBG_API(dev.deinit) = dev_deinit_stub;
     BSP_DBG_API(dev.conf)   = dev_conf_stub;
     BSP_DBG_API(dev.info)   = dev_info_stub;
@@ -271,6 +271,8 @@ bspapi_t *bsp_api_attach (void)
     return &api->api;
 }
 
+#define dev_hal_tickle
+
 #endif /*BSP_INDIR_API*/
 
 void bsp_tickle (void)
@@ -280,10 +282,12 @@ void bsp_tickle (void)
     serial_tickle();
     profiler_reset();
     cmd_tickle();
-    dev_hal_tickle();
 }
 
 #define MAX_ARGC 16
+
+static const char **__argv = NULL;
+static int __argc = 0;
 
 static inline tlv_t *__get_tlv (void *_tlv)
 {
@@ -306,9 +310,6 @@ static inline tlv_t *__set_next_tlv (void *_tlv, uint32_t size)
     return tlv;
 }
 
-static const char **__argv = NULL;
-static int __argc = 0;
-
 const char **bsp_argc_argv_get (int *argc)
 {
     arch_word_t *ptr, size;
@@ -328,7 +329,7 @@ int bsp_argv_check (const char *name)
 {
     int i;
     for (i = 0; i < __argc; i++) {
-        if (strcmp(__argv[i], name) == 0) {
+        if (d_strcmp(__argv[i], name) == 0) {
             return i;
         }
     }

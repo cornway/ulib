@@ -10,6 +10,7 @@
 #include <bsp_api.h>
 #include <misc_utils.h>
 #include <debug.h>
+#include <heap.h>
 
 #include <gfx.h>
 #include <gfx2d_mem.h>
@@ -19,8 +20,6 @@
 #include "../../gui/colors.h"
 #include <../../../common/int/mpu.h>
 
-#include <debug.h>
-#include <heap.h>
 #include <bsp_sys.h>
 #include <bsp_cmd.h>
 
@@ -33,30 +32,29 @@ static void screen_copy_3x3_8bpp (screen_t *in);
 
 static screen_update_handler_t vid_scaler_handler = NULL;
 
-int bsp_lcd_width = -1;
-int bsp_lcd_height = -1;
+uint32_t bsp_lcd_width = (uint32_t)-1;
+uint32_t bsp_lcd_height = (uint32_t)-1;
 
 static lcd_wincfg_t lcd_def_cfg;
 lcd_wincfg_t *lcd_active_cfg = NULL;
 
 const lcd_layers_t layer_switch[LCD_MAX_LAYER] =
 {
-    [LCD_BACKGROUND] = LCD_FOREGROUND,
-    [LCD_FOREGROUND] = LCD_BACKGROUND,
+    LCD_FOREGROUND,
+    LCD_BACKGROUND,
 };
 
 static const char *screen_mode2txt_map[] =
 {
-    [GFX_COLOR_MODE_CLUT] = "*CLUT L8*",
-    [GFX_COLOR_MODE_RGB565] = "*RGB565*",
-    [GFX_COLOR_MODE_ARGB8888] = "*ARGB8888*",
+    "***INVALID***",
+    "*CLUT L8*",
+    "*RGB565*",
+    "*ARGB8888*",
 };
 
 const uint32_t screen_mode2pixdeep[GFX_COLOR_MODE_MAX] =
 {
-    [GFX_COLOR_MODE_CLUT]       = 1,
-    [GFX_COLOR_MODE_RGB565]     = 2,
-    [GFX_COLOR_MODE_ARGB8888]   = 4,
+    0, 1, 2, 4,
 };
 
 static int vid_gfx_filter_scale = 0;
@@ -142,9 +140,13 @@ int vid_set_keying (uint32_t color, int layer)
 
 void vid_wh (screen_t *s)
 {
-    assert(lcd_active_cfg && s);
-    s->width = lcd_active_cfg->w;
-    s->height = lcd_active_cfg->h;
+    if (!lcd_active_cfg) {
+        s->width = bsp_lcd_width;
+        s->height = bsp_lcd_height;
+    } else {
+        s->width = lcd_active_cfg->w;
+        s->height = lcd_active_cfg->h;
+    }
 }
 
 static void *
@@ -164,7 +166,7 @@ vid_create_framebuffer (screen_alloc_t *alloc, lcd_wincfg_t *cfg,
         assert(0);
     }
 
-    fb_mem = alloc->malloc(fb_size);
+    fb_mem = (uint8_t *)alloc->malloc(fb_size);
     if (!fb_mem) {
         dprintf("%s() : failed to allocate %u bytes\n", __func__, fb_size);
         return NULL;
@@ -288,6 +290,7 @@ int vid_config (screen_conf_t *conf)
     lcd_x_size_var = w;
     lcd_y_size_var = h;
 
+    assert(screen_mode2pixdeep[conf->colormode]);
     if (!vid_create_framebuffer(&conf->alloc, cfg, w, h, screen_mode2pixdeep[conf->colormode], conf->laynum)) {
         return -1;
     }
@@ -497,12 +500,6 @@ void vid_print_info (void)
     dprintf("Video-\n");
 }
 
-static void
-vid_copy_SW (screen_t *dest, screen_t *src)
-{
-    d_memcpy(dest->buf, src->buf, src->width * src->height);
-}
-
 static int
 vid_copy_HW (screen_t *dest, screen_t *src)
 {
@@ -510,6 +507,7 @@ vid_copy_HW (screen_t *dest, screen_t *src)
     uint8_t colormode = lcd_active_cfg->config.colormode;
 
     vid_vsync(0);
+    assert(screen_mode2pixdeep[colormode]);
     return screen_hal_copy_m2m(lcd_active_cfg, &copybuf, screen_mode2pixdeep[colormode]);
 }
 

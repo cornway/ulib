@@ -29,8 +29,6 @@ typedef struct dvar_int_s {
     uint16_t namelen;
 } dvar_int_t;
 
-static const char *cmd_errno_text (void);
-static const char *cmd_check_errno (cmd_errno_t *err);
 static int _cmd_register_var (cmdvar_t *var, const char *name);
 static int cmd_stdin_ascii_forward (int argc, const char **argv);
 static int __cmd_handle_ascii (dvar_int_t *v, int argc, const char **argv);
@@ -54,26 +52,24 @@ static int cmd_mod_insert (int argc, const char **argv);
 static int cmd_mod_rm (int argc, const char **argv);
 static int cmd_mod_probe (int argc, const char **argv);
 #endif /*BOOT*/
-static int cmd_stdin_ctrl (int argc, const char **argv);
 static int cmd_util_serial (int argc, const char **argv);
 static int cmd_intutil_cat (int argc, const char **argv);
-static int cmd_stdin_to_path_write (int argc, const char **argv);
-static int cmd_stdin_path_close (void);
 static int cmd_exec_cmdfile (int argc, const char **argv);
 static int cmd_util_nop (int argc, const char **argv);
+
+int boot_char_cmd_handler (int argc, const char **argv);
 
 static int
 __dir_list (int verbose, char *pathbuf, int recursion,
              int maxrecursion, const char *path);
 
 static dvar_int_t *dvar_head = NULL;
-static cmd_func_t saved_stdin_hdlr = NULL;
-static int stdin_file = -1;
-static char __eof_sequence[16] = "...............";
+static cmdexec_t *cmd_exec_head = NULL;
 
 static int cmd_util_assert (int argc, const char **argv)
 {
     assert(0);
+    return 0;
 }
 
 /*FUNCTION TABLES=============================================================*/
@@ -104,7 +100,6 @@ static const cmd_func_map_t cmd_priv_func_tbl[] =
     {"rmmod",   cmd_mod_rm},
     {"modprobe",cmd_mod_probe},
 #endif
-    {"stdin",   cmd_stdin_ctrl},
     {"serial",  cmd_util_serial},
     {"runcmd",  cmd_exec_cmdfile},
     {"assert",  cmd_util_assert},
@@ -151,30 +146,11 @@ int cmd_register_str (char *str, int len, const char *name)
 int cmd_register_func (cmd_func_t func, const char *name)
 {
     cmdvar_t v;
-    v.ptr = func;
+    v.ptr = (void *)func;
     v.ptrsize = sizeof(func);
     v.type = DVAR_FUNC;
     return cmd_register_var(&v, name);
 }
-
-typedef enum {
-    STDIN_CHAR,
-    STDIN_PATH,
-    STDIN_NULL,
-} BSP_STDIN;
-
-static int stdin_eof_recv = 0;
-int g_stdin_eof_timeout_var = 0;
-int g_stdin_eof_timeout = 20000;
-static int stdin_to_path_bytes_limit = -1;
-static int stdin_to_path_bytes_cnt = 0;
-BSP_STDIN bsp_stdin_type = STDIN_CHAR;
-
-static char __cmd_tofile_buf[256] = {0};
-static uint8_t __cmd_tofile_full = 0;
-static uint8_t __cmd_tofile_tresh = 128;
-static uint32_t __cmd_tofile_usage_tsf = 0;
-static cmdexec_t *cmd_exec_head = NULL;
 
 int cmd_init (void)
 {
@@ -184,7 +160,6 @@ int cmd_init (void)
     for (i = 0; i < arrlen(cmd_func_tbl); i++) {
         _cmd_register_func(cmd_func_tbl[i].func, cmd_func_tbl[i].name);
     }
-    cmd_register_i32(&g_stdin_eof_timeout, "stdinwait");
     return 0;
 }
 
@@ -204,66 +179,6 @@ void cmd_deinit (void)
     bsp_stdin_unreg_if(cmd_stdin_ascii_forward);
     cmd_dvar_unregister_all();
     cmd_exec_flush();
-}
-
-static char *cmd_get_eof (const char *data, int len)
-{
-    char *p;
-
-    p = strstr(data, __eof_sequence);
-    return p;
-}
-
-static void __cmd_filebuf_flush (void)
-{
-    __cmd_tofile_usage_tsf = 0;
-    if (!__cmd_tofile_full) {
-        return;
-    }
-    d_write(stdin_file, &__cmd_tofile_buf[0], __cmd_tofile_full);
-    __cmd_tofile_full = 0;
-}
-
-static int __cmd_filebuf_write (void *data, int len)
-{
-    __cmd_tofile_usage_tsf = d_time() + 200;
-    if (__cmd_tofile_full > __cmd_tofile_tresh) {
-        len = __cmd_tofile_full;
-        len = d_write(stdin_file, &__cmd_tofile_buf[0], len);
-        __cmd_tofile_full = 0;
-    }
-    len = min(len, stdin_to_path_bytes_limit);
-    memcpy(&__cmd_tofile_buf[__cmd_tofile_full], data, len);
-    __cmd_tofile_full += len;
-    return len;
-}
-
-static int __cmd_set_stdin_char (int argc, const char **argv)
-{
-}
-
-static int __cmd_set_stdin_file (int argc, const char **argv)
-{
-}
-
-static int cmd_stdin_path_close (void)
-{
-}
-
-static int cmd_stdin_to_path_write (int argc, const char **argv)
-{
-}
-
-static void __cmd_stdin_force_flush (void)
-{
-}
-
-static int __cmd_stdin_redirect (int argc, const char **argv)
-{
-}
-
-static int cmd_stdin_ctrl (int argc, const char **argv)
-{
 }
 
 static int __cmd_stdin_ascii_fwd (int argc, const char **argv)
@@ -327,7 +242,7 @@ static int __cmd_handle_ascii (dvar_int_t *v, int argc, const char **argv)
                 dprintf("%s = %s\n", v->name, (char *)v->dvar.ptr);
                 return argc;
             }
-            snprintf(v->dvar.ptr, v->dvar.ptrsize, "%s", argv[0]);
+            snprintf((char *)v->dvar.ptr, v->dvar.ptrsize, "%s", argv[0]);
             argc = 0;
         }
         break;
@@ -369,14 +284,6 @@ static int __cmd_print_env (int argc, const char **argv)
 void cmd_tickle (void)
 {
     cmd_exec_pending(cmd_execute);
-    if (g_stdin_eof_timeout_var && g_stdin_eof_timeout_var < d_time()) {
-        dprintf("wait for stdin : timeout\n");
-        dprintf("flushing..\n");
-        cmd_exec_dsr("bsp", "stdin > 0 -g");
-    } else if (__cmd_tofile_usage_tsf && __cmd_tofile_usage_tsf < d_time()) {
-        dprintf("stdin: flushed\n");
-        __cmd_filebuf_flush();
-    }
 }
 
 static int __cmd_fs_touch (int argc, const char **argv)
@@ -506,7 +413,6 @@ extern void dev_deinit (void);
     dprintf("poweroff ...");
     dev_deinit();
     for (;;) {}
-    bug();
 }
 
 int cmd_execute (const char *cmd, int len)
@@ -735,7 +641,7 @@ static int cmd_exec_cmdfile (int argc, const char **argv)
         }
         err = cmd_exec_cmdline(strptr, usrargc, usrargv);
         if (err != CMDERR_OK) {
-            dprintf("failed: (%s); line: %u\n", cmd_errno_text(), linenum);
+            dprintf("failed: (%d); line: %u\n", err, linenum);
             dprintf("during: [%s]\n", strptr);
             dprintf("breaking\n");
             return err;
@@ -747,39 +653,9 @@ static int cmd_exec_cmdfile (int argc, const char **argv)
 
 /*PRIVATE, INTERNAL TOOLS=====================================================*/
 
-static cmd_errno_t cmd_errno = CMDERR_OK;
-
-static const char *cmd_errno_text (void)
-{
-#define errorcase(e) case e: return #e
-    switch (cmd_errno) {
-        errorcase(CMDERR_OK);
-        errorcase(CMDERR_GENERIC);
-        errorcase(CMDERR_NOARGS);
-        errorcase(CMDERR_NOPATH);
-        errorcase(CMDERR_INVPARM);
-        errorcase(CMDERR_PERMISS);
-        errorcase(CMDERR_UNKNOWN);
-    }
-    return "UNKNOWN";
-#undef errorcase
-}
-
-static void cmd_set_errno (int err)
-{
-    if (err < 0) {
-        err = -err;
-    }
-    if (err >= CMDERR_OK && err < CMDERR_MAX) {
-        cmd_errno = (cmd_errno_t)err;
-    } else {
-        cmd_errno = CMDERR_UNKNOWN;
-    }
-}
-
 int cmd_exec_dsr (const char *name, const char *text)
 {
-    cmdexec_t *cmd = heap_malloc(sizeof(*cmd) + CMD_MAX_BUF);
+    cmdexec_t *cmd = (cmdexec_t *)heap_malloc(sizeof(*cmd) + CMD_MAX_BUF);
 
     if (!cmd) {
         return -CMDERR_NOCORE;
@@ -878,13 +754,6 @@ static int __cmd_bsp_export_cmd (const cmd_func_map_t *hdlrs, int len)
     return 0;
 }
 
-static int _cmd_unregister_var (void *p1, void *p2)
-{
-    cmd_unregister((char *)p1);
-
-    return strlen((char *)p1);
-}
-
 static int __cmd_register_var (int argc, const char **argv)
 {
     dprintf("%s() : Not yet\n", __func__);
@@ -904,7 +773,7 @@ static int __cmd_unregister_var (int argc, const char **argv)
 static int _cmd_register_func (cmd_func_t func, const char *name)
 {
     cmdvar_t v;
-    v.ptr = func;
+    v.ptr = (void *)func;
     v.ptrsize = sizeof(func);
     v.type = DVAR_FUNC;
     return _cmd_register_var(&v, name);
@@ -1120,7 +989,7 @@ void cmd_parm_load_val (cmd_keyval_t *kv, const char *str)
 }
 void cmd_parm_load_str (cmd_keyval_t *kv, const char *str)
 {
-    strcpy(kv->val, str);
+    strcpy((char *)kv->val, str);
 }
 
 int

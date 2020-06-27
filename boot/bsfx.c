@@ -32,12 +32,12 @@ typedef struct {
 
 static sfx_map_t sfx_map[] =
 {
-    [SFX_MOVE]         = {"sfxmove.wav", "\0", -1},
-    [SFX_SCROLL]       = {"sfxscroll.wav", "\0", -1},
-    [SFX_WARNING]      = {"sfxwarn.wav", "\0", -1},
-    [SFX_CONFIRM]      = {"sfxaccpt.wav", "\0", -1},
-    [SFX_START_APP]    = {"sfxstrt2.wav", "\0", -1},
-    [SFX_NOWAY]        = {"sfxnoway.wav", "\0", -1},
+    {"sfxmove.wav", "\0", -1},
+    {"sfxscroll.wav", "\0", -1},
+    {"sfxwarn.wav", "\0", -1},
+    {"sfxaccpt.wav", "\0", -1},
+    {"sfxstrt2.wav", "\0", -1},
+    {"sfxnoway.wav", "\0", -1},
 };
 
 static cd_track_t boot_cd = {NULL};

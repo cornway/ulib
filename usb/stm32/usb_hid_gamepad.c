@@ -78,7 +78,7 @@ void joypad_bsp_deinit (void)
 void joypad_bsp_init (void)
 {
     irqmask_t temp;
-    uint32_t timeout = 2000;
+    uint32_t timeout = 200;
 
     irq_bmap(&temp);
     USBH_Init(&hUSBHost, USBH_UserProcess, 0);

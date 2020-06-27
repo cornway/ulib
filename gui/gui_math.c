@@ -7,6 +7,7 @@
 #include <bsp_api.h>
 #include <misc_utils.h>
 #include <debug.h>
+#include <heap.h>
 #include <gui.h>
 
 void dim_extend (dim_t *dest, dim_t *ref)

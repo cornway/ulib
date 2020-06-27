@@ -128,6 +128,7 @@ readPtr (const void *_p)
 int d_rlimit_wrap (uint32_t *tsf, uint32_t period);
 void d_sleep (uint32_t ms);
 
+int d_strcmp (const char *a, const char *b);
 void d_memcpy (void *_dst, const void *_src, int cnt);
 void d_memset (void *_dst, int v, int cnt);
 #define d_memzero(dst, cnt) d_memset(dst, 0, cnt)

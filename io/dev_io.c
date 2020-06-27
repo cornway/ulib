@@ -38,7 +38,6 @@ static char DEV_Path[4] = {0};
 typedef struct {
     int type;
     uint32_t refcnt;
-    uint32_t ptr[];
 } fobjhdl_t;
 
 typedef struct {
@@ -87,14 +86,14 @@ static inline void *allochandle (fobjhdl_t **hdls, int *num, int dir)
     for (i=0 ; i<MAX_HANDLES * 2; i++) {
         h = hdls[i];
         if (NULL == h) {
-            h = heap_malloc(memsize);
+            h = (fobjhdl_t *)heap_malloc(memsize);
             if (NULL == h) {
                 break;
             }
             h->refcnt = 1;
             *num = i;
             hdls[i] = h;
-            return h->ptr;
+            return (void *)(h + 1);
         }
     }
     return NULL;
@@ -102,7 +101,7 @@ static inline void *allochandle (fobjhdl_t **hdls, int *num, int dir)
 
 static inline void *gethandle (fobjhdl_t **hdls, int num)
 {
-    return hdls[num] ? hdls[num]->ptr : NULL;
+    return hdls[num] ? (void *)(hdls[num] + 1) : NULL;
 }
 
 static inline void releasehandle (fobjhdl_t **hdls, int handle)
@@ -246,7 +245,7 @@ int d_open (const char *path, int *hndl, char const * att)
             dbg_eval(DBG_WARN) dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
         }
     }
-    res = f_open(getfile(*hndl), path, mode);
+    res = f_open((FIL *)getfile(*hndl), path, mode);
     if (res != FR_OK) {
         dbg_eval(DBG_WARN) dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
         freefile(*hndl);
@@ -273,7 +272,7 @@ void d_close (int h)
 {
     FRESULT res;
     assert(chkfile(h));
-    res = f_close(getfile(h));
+    res = f_close((FIL *)getfile(h));
     if (res != FR_OK) {
         dbg_eval(DBG_ERR) dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
     } else {
@@ -301,13 +300,13 @@ int d_seek (int handle, int position, uint32_t mode)
     }
     switch (mode) {
         case DSEEK_SET:
-            res = f_lseek(getfile(handle), position);
+            res = f_lseek((FIL *)getfile(handle), position);
         break;
         case DSEEK_CUR:
-            res = f_lseek(getfile(handle), d_tell(handle) + position);
+            res = f_lseek((FIL *)getfile(handle), d_tell(handle) + position);
         break;
         case DSEEK_END:
-            res = f_lseek(getfile(handle), d_size(handle) + position);
+            res = f_lseek((FIL *)getfile(handle), d_size(handle) + position);
         break;
         default:
             dprintf("Unknown SEEK mode : %u\n", mode);
@@ -325,15 +324,15 @@ int d_eof (int handle)
     return f_eof((FIL *)getfile(handle));
 }
 
-int d_read (int handle, PACKED void *dst, int count)
+int d_read (int handle, void *dst, int count)
 {
-    PACKED char *data;
+    char *data;
     UINT done = 0;
     FRESULT res = FR_NOT_READY;
 
     if ( handle >= 0 ) {
-        data = dst;
-        res = f_read(getfile(handle), data, count, &done);
+        data = (char *)dst;
+        res = f_read((FIL *)getfile(handle), data, count, &done);
     }
     if (res != FR_OK) {
         dbg_eval(DBG_WARN) dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
@@ -342,9 +341,9 @@ int d_read (int handle, PACKED void *dst, int count)
     return done;
 }
 
-char *d_gets (int handle, PACKED char *dst, int count)
+char *d_gets (int handle, char *dst, int count)
 {
-    if (f_gets(dst, count, getfile(handle)) == NULL) {
+    if (f_gets(dst, count, (FIL *)getfile(handle)) == NULL) {
         return NULL;
     }
     return dst;
@@ -355,7 +354,7 @@ char d_getc (int h)
     char c;
     UINT btr;
     FRESULT res;
-    res = f_read(getfile(h), &c, 1, &btr);
+    res = f_read((FIL *)getfile(h), &c, 1, &btr);
     if (res != FR_OK) {
         dbg_eval(DBG_WARN) dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
         return 0xff;
@@ -363,16 +362,16 @@ char d_getc (int h)
     return c;
 }
 
-int d_write (int handle, PACKED const void *src, int count)
+int d_write (int handle, const void *src, int count)
 {
 #if !DEVIO_READONLY
-    PACKED const char *data;
+    const char *data;
     UINT done;
     FRESULT res = FR_NOT_READY;
 
     if ( handle >= 0 ) {
-        data = src;
-        res = f_write (getfile(handle), data, count, &done);
+        data = (const char *)src;
+        res = f_write ((FIL *)getfile(handle), data, count, &done);
     }
     if (res != FR_OK) {
         dbg_eval(DBG_ERR) dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
@@ -404,7 +403,7 @@ int d_opendir (const char *path)
         dprintf("%s() : too many open files\n", __func__);
         return -1;
     }
-    res = f_opendir(getdir(h), path);
+    res = f_opendir((DIR *)getdir(h), path);
     if (res != FR_OK) {
         if (res != FR_NO_PATH) {
             dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
@@ -420,7 +419,7 @@ int d_closedir (int dir)
     FRESULT res;
 
     assert(chkdir(dir));
-    res = f_closedir(getdir(dir));
+    res = f_closedir((DIR *)getdir(dir));
     if (res != FR_OK) {
         dprintf("%s() : fail : \'%s\'\n", __func__, _fres_to_string(res));
     }
@@ -489,7 +488,7 @@ int d_readdir (int dir, fobj_t *fobj)
         return -DERR_INVPARAM;
     }
     dh = (dirhandle_t *)getdir(dir);
-    f_readdir(getdir(dir) , &dh->fn);
+    f_readdir((DIR *)getdir(dir) , &dh->fn);
     if (dh->fn.fname[0] == 0) {
         return -DERR_NOPATH;
     }
@@ -508,7 +507,6 @@ uint32_t d_time (void)
 
 static int _devio_mount (char *path)
 {
-    int i;
     FRESULT res;
 
     d_memzero(&DEV_Fs, sizeof(DEV_Fs));

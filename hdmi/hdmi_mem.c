@@ -165,7 +165,7 @@ struct V_PREPACK cea861_short_video_descriptor {
 
 struct V_PREPACK cea861_video_data_block {
     struct cea861_data_block_header      header;
-    struct cea861_short_video_descriptor svd[];
+    struct cea861_short_video_descriptor svd[1];
 } V_POSTPACK;
 
 struct V_PREPACK cea861_short_audio_descriptor {
@@ -208,7 +208,7 @@ struct V_PREPACK cea861_short_audio_descriptor {
 
 struct V_PREPACK cea861_audio_data_block {
     struct cea861_data_block_header      header;
-    struct cea861_short_audio_descriptor sad[];
+    struct cea861_short_audio_descriptor sad[1];
 } V_POSTPACK;
 
 struct V_PREPACK cea861_speaker_allocation {
@@ -467,7 +467,7 @@ struct V_PREPACK hdmi_vendor_specific_data_block {
     uint8_t  interlaced_video_latency;
     uint8_t  interlaced_audio_latency;
 
-    uint8_t  reserved[];
+    uint8_t  reserved[1];
 } V_POSTPACK;
 
 
@@ -490,72 +490,73 @@ static const struct cea861_timing {
     const double   vfreq;
     const double   pixclk;
 } cea861_timings[] = {
-    [1]  = {  640,  480, PROGRESSIVE,  800,  160,  525, 45.0,  31.469,  59.940,  25.175 },
-    [2]  = {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0,  31.469,  59.940,  27.000 },
-    [3]  = {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0,  31.469,  59.940,  27.000 },
-    [4]  = { 1280,  720, PROGRESSIVE, 1650,  370,  750, 30.0,  45.000,  60.000,  74.250 },
-    [5]  = { 1920, 1080,  INTERLACED, 2200,  280, 1125, 22.5,  33.750,  60.000,  72.250 },
-    [6]  = { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  15.734,  59.940,  27.000 },
-    [7]  = { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  15.734,  59.940,  27.000 },
-    [8]  = { 1440,  240, PROGRESSIVE, 1716,  276,  262, 22.0,  15.734,  60.054,  27.000 },  /* 9 */
-    [9]  = { 1440,  240, PROGRESSIVE, 1716,  276,  262, 22.0,  15.734,  59.826,  27.000 },  /* 8 */
-    [10] = { 2880,  480,  INTERLACED, 3432,  552,  525, 22.5,  15.734,  59.940,  54.000 },
-    [11] = { 2880,  480,  INTERLACED, 3432,  552,  525, 22.5,  15.734,  59.940,  54.000 },
-    [12] = { 2880,  240, PROGRESSIVE, 3432,  552,  262, 22.0,  15.734,  60.054,  54.000 },  /* 13 */
-    [13] = { 2880,  240, PROGRESSIVE, 3432,  552,  262, 22.0,  15.734,  59.826,  54.000 },  /* 12 */
-    [14] = { 1440,  480, PROGRESSIVE, 1716,  276,  525, 45.0,  31.469,  59.940,  54.000 },
-    [15] = { 1440,  480, PROGRESSIVE, 1716,  276,  525, 45.0,  31.469,  59.940,  54.000 },
-    [16] = { 1920, 1080, PROGRESSIVE, 2200,  280, 1125, 45.0,  67.500,  60.000, 148.500 },
-    [17] = {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0,  31.250,  50.000,  27.000 },
-    [18] = {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0,  31.250,  50.000,  27.000 },
-    [19] = { 1280,  720, PROGRESSIVE, 1980,  700,  750, 30.0,  37.500,  50.000,  74.250 },
-    [20] = { 1920, 1080,  INTERLACED, 2640,  720, 1125, 22.5,  28.125,  50.000,  74.250 },
-    [21] = { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  15.625,  50.000,  27.000 },
-    [22] = { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  15.625,  50.000,  27.000 },
-    [23] = { 1440,  288, PROGRESSIVE, 1728,  288,  312, 24.0,  15.625,  50.080,  27.000 },  /* 24 */
-    [24] = { 1440,  288, PROGRESSIVE, 1728,  288,  313, 25.0,  15.625,  49.920,  27.000 },  /* 23 */
- // [24] = { 1440,  288, PROGRESSIVE, 1728,  288,  314, 26.0,  15.625,  49.761,  27.000 },
-    [25] = { 2880,  576,  INTERLACED, 3456,  576,  625, 24.5,  15.625,  50.000,  54.000 },
-    [26] = { 2880,  576,  INTERLACED, 3456,  576,  625, 24.5,  15.625,  50.000,  54.000 },
-    [27] = { 2880,  288, PROGRESSIVE, 3456,  576,  312, 24.0,  15.625,  50.080,  54.000 },  /* 28 */
-    [28] = { 2880,  288, PROGRESSIVE, 3456,  576,  313, 25.0,  15.625,  49.920,  54.000 },  /* 27 */
- // [28] = { 2880,  288, PROGRESSIVE, 3456,  576,  314, 26.0,  15.625,  49.761,  54.000 },
-    [29] = { 1440,  576, PROGRESSIVE, 1728,  288,  625, 49.0,  31.250,  50.000,  54.000 },
-    [30] = { 1440,  576, PROGRESSIVE, 1728,  288,  625, 49.0,  31.250,  50.000,  54.000 },
-    [31] = { 1920, 1080, PROGRESSIVE, 2640,  720, 1125, 45.0,  56.250,  50.000, 148.500 },
-    [32] = { 1920, 1080, PROGRESSIVE, 2750,  830, 1125, 45.0,  27.000,  24.000,  74.250 },
-    [33] = { 1920, 1080, PROGRESSIVE, 2640,  720, 1125, 45.0,  28.125,  25.000,  74.250 },
-    [34] = { 1920, 1080, PROGRESSIVE, 2200,  280, 1125, 45.0,  33.750,  30.000,  74.250 },
-    [35] = { 2880,  480, PROGRESSIVE, 3432,  552,  525, 45.0,  31.469,  59.940, 108.500 },
-    [36] = { 2880,  480, PROGRESSIVE, 3432,  552,  525, 45.0,  31.469,  59.940, 108.500 },
-    [37] = { 2880,  576, PROGRESSIVE, 3456,  576,  625, 49.0,  31.250,  50.000, 108.000 },
-    [38] = { 2880,  576, PROGRESSIVE, 3456,  576,  625, 49.0,  31.250,  50.000, 108.000 },
-    [39] = { 1920, 1080,  INTERLACED, 2304,  384, 1250, 85.0,  31.250,  50.000,  72.000 },
-    [40] = { 1920, 1080,  INTERLACED, 2640,  720, 1125, 22.5,  56.250, 100.000, 148.500 },
-    [41] = { 1280,  720, PROGRESSIVE, 1980,  700,  750, 30.0,  75.000, 100.000, 148.500 },
-    [42] = {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0,  62.500, 100.000,  54.000 },
-    [43] = {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0,  62.500, 100.000,  54.000 },
-    [44] = { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  31.250, 100.000,  54.000 },
-    [45] = { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  31.250, 100.000,  54.000 },
-    [46] = { 1920, 1080,  INTERLACED, 2200,  280, 1125, 22.5,  67.500, 120.000, 148.500 },
-    [47] = { 1280,  720, PROGRESSIVE, 1650,  370,  750, 30.0,  90.000, 120.000, 148.500 },
-    [48] = {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0,  62.937, 119.880,  54.000 },
-    [49] = {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0,  62.937, 119.880,  54.000 },
-    [50] = { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  31.469, 119.880,  54.000 },
-    [51] = { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  31.469, 119.880,  54.000 },
-    [52] = {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0, 125.000, 200.000, 108.000 },
-    [53] = {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0, 125.000, 200.000, 108.000 },
-    [54] = { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  62.500, 200.000, 108.000 },
-    [55] = { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  62.500, 200.000, 108.000 },
-    [56] = {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0, 125.874, 239.760, 108.000 },
-    [57] = {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0, 125.874, 239.760, 108.000 },
-    [58] = { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  62.937, 239.760, 108.000 },
-    [59] = { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  62.937, 239.760, 108.000 },
-    [60] = { 1280,  720, PROGRESSIVE, 3300, 2020,  750, 30.0,  18.000,  24.000,  59.400 },
-    [61] = { 1280,  720, PROGRESSIVE, 3960, 2680,  750, 30.0,  18.750,  25.000,  74.250 },
-    [62] = { 1280,  720, PROGRESSIVE, 3300, 2020,  750, 30.0,  22.500,  30.000,  74.250 },
-    [63] = { 1920, 1080, PROGRESSIVE, 2200,  280, 1125, 45.0, 135.000, 120.000, 297.000 },
-    [64] = { 1920, 1080, PROGRESSIVE, 2640,  720, 1125, 45.0, 112.500, 100.000, 297.000 },
+    {  640,  480, PROGRESSIVE,  800,  160,  525, 45.0,  31.469,  59.940,  25.175 },
+    {  640,  480, PROGRESSIVE,  800,  160,  525, 45.0,  31.469,  59.940,  25.175 },
+    {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0,  31.469,  59.940,  27.000 },
+    {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0,  31.469,  59.940,  27.000 },
+    { 1280,  720, PROGRESSIVE, 1650,  370,  750, 30.0,  45.000,  60.000,  74.250 },
+    { 1920, 1080,  INTERLACED, 2200,  280, 1125, 22.5,  33.750,  60.000,  72.250 },
+    { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  15.734,  59.940,  27.000 },
+    { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  15.734,  59.940,  27.000 },
+    { 1440,  240, PROGRESSIVE, 1716,  276,  262, 22.0,  15.734,  60.054,  27.000 },  /* 9 */
+    { 1440,  240, PROGRESSIVE, 1716,  276,  262, 22.0,  15.734,  59.826,  27.000 },  /* 8 */
+    { 2880,  480,  INTERLACED, 3432,  552,  525, 22.5,  15.734,  59.940,  54.000 },
+    { 2880,  480,  INTERLACED, 3432,  552,  525, 22.5,  15.734,  59.940,  54.000 },
+    { 2880,  240, PROGRESSIVE, 3432,  552,  262, 22.0,  15.734,  60.054,  54.000 },  /* 13 */
+    { 2880,  240, PROGRESSIVE, 3432,  552,  262, 22.0,  15.734,  59.826,  54.000 },  /* 12 */
+    { 1440,  480, PROGRESSIVE, 1716,  276,  525, 45.0,  31.469,  59.940,  54.000 },
+    { 1440,  480, PROGRESSIVE, 1716,  276,  525, 45.0,  31.469,  59.940,  54.000 },
+    { 1920, 1080, PROGRESSIVE, 2200,  280, 1125, 45.0,  67.500,  60.000, 148.500 },
+    {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0,  31.250,  50.000,  27.000 },
+    {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0,  31.250,  50.000,  27.000 },
+    { 1280,  720, PROGRESSIVE, 1980,  700,  750, 30.0,  37.500,  50.000,  74.250 },
+    { 1920, 1080,  INTERLACED, 2640,  720, 1125, 22.5,  28.125,  50.000,  74.250 },
+    { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  15.625,  50.000,  27.000 },
+    { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  15.625,  50.000,  27.000 },
+    { 1440,  288, PROGRESSIVE, 1728,  288,  312, 24.0,  15.625,  50.080,  27.000 },  /* 24 */
+    { 1440,  288, PROGRESSIVE, 1728,  288,  313, 25.0,  15.625,  49.920,  27.000 },  /* 23 */
+    { 1440,  288, PROGRESSIVE, 1728,  288,  314, 26.0,  15.625,  49.761,  27.000 },
+    { 2880,  576,  INTERLACED, 3456,  576,  625, 24.5,  15.625,  50.000,  54.000 },
+    { 2880,  576,  INTERLACED, 3456,  576,  625, 24.5,  15.625,  50.000,  54.000 },
+    { 2880,  288, PROGRESSIVE, 3456,  576,  312, 24.0,  15.625,  50.080,  54.000 },  /* 28 */
+    { 2880,  288, PROGRESSIVE, 3456,  576,  313, 25.0,  15.625,  49.920,  54.000 },  /* 27 */
+    { 2880,  288, PROGRESSIVE, 3456,  576,  314, 26.0,  15.625,  49.761,  54.000 },
+    { 1440,  576, PROGRESSIVE, 1728,  288,  625, 49.0,  31.250,  50.000,  54.000 },
+    { 1440,  576, PROGRESSIVE, 1728,  288,  625, 49.0,  31.250,  50.000,  54.000 },
+    { 1920, 1080, PROGRESSIVE, 2640,  720, 1125, 45.0,  56.250,  50.000, 148.500 },
+    { 1920, 1080, PROGRESSIVE, 2750,  830, 1125, 45.0,  27.000,  24.000,  74.250 },
+    { 1920, 1080, PROGRESSIVE, 2640,  720, 1125, 45.0,  28.125,  25.000,  74.250 },
+    { 1920, 1080, PROGRESSIVE, 2200,  280, 1125, 45.0,  33.750,  30.000,  74.250 },
+    { 2880,  480, PROGRESSIVE, 3432,  552,  525, 45.0,  31.469,  59.940, 108.500 },
+    { 2880,  480, PROGRESSIVE, 3432,  552,  525, 45.0,  31.469,  59.940, 108.500 },
+    { 2880,  576, PROGRESSIVE, 3456,  576,  625, 49.0,  31.250,  50.000, 108.000 },
+    { 2880,  576, PROGRESSIVE, 3456,  576,  625, 49.0,  31.250,  50.000, 108.000 },
+    { 1920, 1080,  INTERLACED, 2304,  384, 1250, 85.0,  31.250,  50.000,  72.000 },
+    { 1920, 1080,  INTERLACED, 2640,  720, 1125, 22.5,  56.250, 100.000, 148.500 },
+    { 1280,  720, PROGRESSIVE, 1980,  700,  750, 30.0,  75.000, 100.000, 148.500 },
+    {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0,  62.500, 100.000,  54.000 },
+    {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0,  62.500, 100.000,  54.000 },
+    { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  31.250, 100.000,  54.000 },
+    { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  31.250, 100.000,  54.000 },
+    { 1920, 1080,  INTERLACED, 2200,  280, 1125, 22.5,  67.500, 120.000, 148.500 },
+    { 1280,  720, PROGRESSIVE, 1650,  370,  750, 30.0,  90.000, 120.000, 148.500 },
+    {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0,  62.937, 119.880,  54.000 },
+    {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0,  62.937, 119.880,  54.000 },
+    { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  31.469, 119.880,  54.000 },
+    { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  31.469, 119.880,  54.000 },
+    {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0, 125.000, 200.000, 108.000 },
+    {  720,  576, PROGRESSIVE,  864,  144,  625, 49.0, 125.000, 200.000, 108.000 },
+    { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  62.500, 200.000, 108.000 },
+    { 1440,  576,  INTERLACED, 1728,  288,  625, 24.5,  62.500, 200.000, 108.000 },
+    {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0, 125.874, 239.760, 108.000 },
+    {  720,  480, PROGRESSIVE,  858,  138,  525, 45.0, 125.874, 239.760, 108.000 },
+    { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  62.937, 239.760, 108.000 },
+    { 1440,  480,  INTERLACED, 1716,  276,  525, 22.5,  62.937, 239.760, 108.000 },
+    { 1280,  720, PROGRESSIVE, 3300, 2020,  750, 30.0,  18.000,  24.000,  59.400 },
+    { 1280,  720, PROGRESSIVE, 3960, 2680,  750, 30.0,  18.750,  25.000,  74.250 },
+    { 1280,  720, PROGRESSIVE, 3300, 2020,  750, 30.0,  22.500,  30.000,  74.250 },
+    { 1920, 1080, PROGRESSIVE, 2200,  280, 1125, 45.0, 135.000, 120.000, 297.000 },
+    { 1920, 1080, PROGRESSIVE, 2640,  720, 1125, 45.0, 112.500, 100.000, 297.000 },
 };
 
 static const uint8_t EDID_STANDARD_TIMING_DESCRIPTOR_INVALID[] = { 0x01, 0x01 };
@@ -624,13 +625,13 @@ edid_detailed_timing_horizontal_sync_pulse_width(const struct edid_detailed_timi
     return (dtb->horizontal_sync_pulse_width_hi << 4) | dtb->horizontal_sync_pulse_width_lo;
 }
 
-static inline uint16_t
+inline uint16_t
 edid_detailed_timing_horizontal_image_size(const struct edid_detailed_timing_descriptor * const dtb)
 {
     return (dtb->horizontal_image_size_hi << 8) | dtb->horizontal_image_size_lo;
 }
 
-static inline uint16_t
+inline uint16_t
 edid_detailed_timing_vertical_image_size(const struct edid_detailed_timing_descriptor * const dtb)
 {
     return (dtb->vertical_image_size_hi << 8) | dtb->vertical_image_size_lo;
@@ -648,7 +649,7 @@ edid_detailed_timing_vertical_sync_pulse_width(const struct edid_detailed_timing
     return (dtb->vertical_sync_pulse_width_hi << 4) | dtb->vertical_sync_pulse_width_lo;
 }
 
-static inline uint8_t
+inline uint8_t
 edid_detailed_timing_stereo_mode(const struct edid_detailed_timing_descriptor * const dtb)
 {
     return (dtb->stereo_mode_hi << 2 | dtb->stereo_mode_lo);
@@ -786,21 +787,21 @@ static inline struct edid_color_characteristics_data
 edid_color_characteristics(const struct edid * const edid)
 {
     const struct edid_color_characteristics_data characteristics = {
-        .red = {
-            .x = (edid->red_x << 2) | edid->red_x_low,
-            .y = (edid->red_y << 2) | edid->red_y_low,
+        {
+            (uint16_t)((edid->red_x << 2) | edid->red_x_low),
+            (uint16_t)((edid->red_y << 2) | edid->red_y_low),
         },
-        .green = {
-            .x = (edid->green_x << 2) | edid->green_x_low,
-            .y = (edid->green_y << 2) | edid->green_y_low,
+        {
+            (uint16_t)((edid->green_x << 2) | edid->green_x_low),
+            (uint16_t)((edid->green_y << 2) | edid->green_y_low),
         },
-        .blue = {
-            .x = (edid->blue_x << 2) | edid->blue_x_low,
-            .y = (edid->blue_y << 2) | edid->blue_y_low,
+        {
+            (uint16_t)((edid->blue_x << 2) | edid->blue_x_low),
+            (uint16_t)((edid->blue_y << 2) | edid->blue_y_low),
         },
-        .white = {
-            .x = (edid->white_x << 2) | edid->white_x_low,
-            .y = (edid->white_y << 2) | edid->white_y_low,
+        {
+            (uint16_t)((edid->white_x << 2) | edid->white_x_low),
+            (uint16_t)((edid->white_y << 2) | edid->white_y_low),
         },
     };
 
@@ -887,6 +888,13 @@ dump_cea861(const uint8_t * const buffer)
     dprintf("\n");
 }
 
+static const char * const display_type[] = {
+    "Monochrome or greyscale",
+    "sRGB colour",
+    "Non-sRGB colour",
+    "Undefined",
+};
+
 static void
 print_edid1(hdmi_timing_t *timing, const struct edid * const edid)
 {
@@ -901,13 +909,6 @@ print_edid1(hdmi_timing_t *timing, const struct edid * const edid)
     const uint8_t vlen = edid->maximum_vertical_image_size;
     const uint8_t hlen = edid->maximum_horizontal_image_size;
     uint8_t i;
-
-    static const char * const display_type[] = {
-        [EDID_DISPLAY_TYPE_MONOCHROME] = "Monochrome or greyscale",
-        [EDID_DISPLAY_TYPE_RGB]        = "sRGB colour",
-        [EDID_DISPLAY_TYPE_NON_RGB]    = "Non-sRGB colour",
-        [EDID_DISPLAY_TYPE_UNDEFINED]  = "Undefined",
-    };
 
     edid_manufacturer(edid, manufacturer);
     characteristics = edid_color_characteristics(edid);
@@ -997,7 +998,7 @@ print_edid1(hdmi_timing_t *timing, const struct edid * const edid)
 
     dprintf("  Screen size.............. %u mm x %u mm (%.1f in)\n",
            CM_2_MM(hlen), CM_2_MM(vlen),
-           CM_2_IN(sqrt(hlen * hlen + vlen * vlen)));
+           CM_2_IN(sqrt((float)(hlen * hlen + vlen * vlen))));
 
     dprintf("  Power management......... %s%s%s%s\n",
            edid->feature_support.active_off ? "Active off, " : "",
@@ -1479,7 +1480,9 @@ struct edid_extension_handler {
 };
 
 static struct edid_extension_handler edid_extension_handlers[] = {
-    [EDID_EXTENSION_CEA] = { dump_cea861, disp_cea861 },
+    {NULL, NULL},
+    {NULL, NULL},
+    { dump_cea861, disp_cea861 },
 };
 
 static void
@@ -1524,6 +1527,4 @@ int hdmi_parse_edid (hdmi_timing_t *timing, hdmi_edid_seg_t *edid, int size)
 }
 
 #endif /*defined(USE_LCD_HDMI)*/
-
-#endif
 

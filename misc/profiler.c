@@ -79,9 +79,7 @@ static void delay_us (uint32_t us)
 {
     volatile uint32_t cycles = _cpu_us_to_cycles(us);
 
-    while (cycles--)
-    {
-    }
+    while (cycles--) {}
 }
 
 static inline record_t *prof_alloc_rec (void)
@@ -90,7 +88,7 @@ static inline record_t *prof_alloc_rec (void)
         return NULL;
     }
     if (NULL == records_pool) {
-        records_pool = heap_malloc(P_RECORDS_MAX * sizeof(record_t));
+        records_pool = (record_t *)heap_malloc(P_RECORDS_MAX * sizeof(record_t));
     }
     if (NULL == records_pool) {
         return NULL;
@@ -146,9 +144,7 @@ void _profiler_enter (const char *func, int line)
     rec->levelsdeep = profile_deepth - 1;
     rec->flags |= PFLAG_ENTER;
     if (prof_time_init_ok && g_profile_timer_tsf == 1) {
-        rec->cycles = tim_hal_get_cycles(&profile_timer_desc);
-    } else {
-        rec->cycles = DWT->CYCCNT;
+        rec->cycles = hal_timer_value(&profile_timer_desc);
     }
     prof_link_rec(rec);
 }
@@ -171,9 +167,7 @@ void _profiler_exit (const char *func, int line)
     rec->levelsdeep = profile_deepth;
     rec->flags |= PFLAG_EXIT;
     if (prof_time_init_ok && g_profile_timer_tsf == 1) {
-        rec->cycles = tim_hal_get_cycles(&profile_timer_desc);
-    } else {
-        rec->cycles = DWT->CYCCNT;
+        rec->cycles = hal_timer_value(&profile_timer_desc);
     }
 
     prof_link_rec(rec);
@@ -199,27 +193,6 @@ void profiler_reset (void)
     profile_deepth = 0;
 }
 
-static void profile_timer_msp_init (timer_desc_t *desc)
-{
-    __HAL_RCC_TIM2_CLK_ENABLE();
-}
-
-static void profile_timer_msp_deinit (timer_desc_t *desc)
-{
-    __HAL_RCC_TIM2_CLK_DISABLE();
-}
-
-void TIM2_IRQHandler (void)
-{
-    tim_hal_irq_handler(&profile_timer_desc);
-}
-
-void profiler_hal_init (void)
-{
-    DWT->CTRL |= 1 ; // enable the counter
-    DWT->CYCCNT = 0; // reset the counter
-}
-
 static void profiler_timer_init (void)
 {
 
@@ -227,10 +200,10 @@ static void profiler_timer_init (void)
     profile_timer_desc.period = 0xffffffff;
     profile_timer_desc.presc = 1000000;
     profile_timer_desc.handler = NULL;
-    profile_timer_desc.init = profile_timer_msp_init;
-    profile_timer_desc.deinit = profile_timer_msp_deinit;
+    profile_timer_desc.init = NULL;
+    profile_timer_desc.deinit = NULL;
 
-    if (hal_tim_init(&profile_timer_desc, TIM2, TIM2_IRQn) == 0) {
+    if (hal_hires_timer_init(&profile_timer_desc) == 0) {
         prof_time_init_ok = 1;
     }
     if (!prof_time_init_ok) {
@@ -240,14 +213,12 @@ static void profiler_timer_init (void)
 
 static void profiler_timer_deinit (void)
 {
-    hal_tim_deinit(&profile_timer_desc);
+    hal_timer_deinit(&profile_timer_desc);
 }
 
 void profiler_init (void)
 {
     cmdvar_t dvar;
-
-    profiler_hal_init();
 
     delay_us(1);
     profiler_reset();
@@ -258,7 +229,7 @@ void profiler_init (void)
         profiler_timer_init();
     }
 
-    dvar.ptr = profiler_print_dvar;
+    dvar.ptr = (void *)profiler_print_dvar;
     dvar.ptrsize = sizeof(&profiler_print_dvar);
     dvar.type = DVAR_FUNC;
     cmd_register_var(&dvar, "profile");
@@ -280,9 +251,6 @@ void profiler_print (void)
     int caller = -1;
 
     dprintf("%s() : \n", __func__);
-    dprintf("core clock = \'%u\', clocks per us = \'%u\'\n",
-        SystemCoreClock, clocks_per_us);
-
 
     if (NULL == records_pool) {
         return;

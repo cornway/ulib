@@ -82,7 +82,6 @@ typedef struct prop_s {
 } prop_t;
 
 #define GUI_COMMON(type, parenttype)  \
-struct {                                \
     struct type *next;                  \
     struct parenttype *parent;         \
     rgba_t bcolor, fcolor;              \
@@ -91,10 +90,9 @@ struct {                                \
     uint16_t type:  6,                  \
              ispad:   1,                \
              userdraw: 1;               \
-}
 
 typedef struct component_s {
-    GUI_COMMON(component_s, pane_s);
+    GUI_COMMON(component_s, pane_s)
 
     const void *font;
     comp_handler_t act, release;
@@ -118,7 +116,7 @@ typedef struct component_s {
 
 /*must be about fixed size*/
 typedef struct pane_s {
-    GUI_COMMON(pane_s, gui_s);
+    GUI_COMMON(pane_s, gui_s)
 
     struct pane_s *child;
     component_t *onfocus;
@@ -132,19 +130,19 @@ typedef struct pane_s {
             repaint: 1;
 } pane_t;
 
-struct bsp_heap_api_s;
+typedef struct gui_s gui_t;
 
 typedef struct gui_bsp_api_s {
-    struct bsp_heap_api_s *mem;
+    bsp_heap_api_t mem;
+
+    void (*fill_rect) (dim_t *, dim_t *, rgba_t);
+    void (*fill_comp) (component_t *, rgba_t);
+    int  (*string_at) (component_t *, int, rgba_t, const char *, int);
+    void (*font_prop) (fontprop_t *, const void *);
+    const void *(*get_font) (gui_t *, int);
 } gui_bsp_api_t;
 
-#define gui_bsp_alloc(gui, size) \
-    heap_api_malloc((gui)->bspapi.mem, size)
-
-#define gui_bsp_free(gui, ptr) \
-    heap_api_free((gui)->bspapi.mem, ptr)
-
-typedef struct gui_s {
+struct gui_s {
     dim_t dim;
     void *ctxt;
     uint8_t destroy;
@@ -157,7 +155,10 @@ typedef struct gui_s {
     char name[GUI_MAX_NAME];
 
     gui_bsp_api_t bspapi;
-} gui_t;
+};
+
+#define gui_bsp_alloc(gui, size) heap_api_malloc(&((gui)->bspapi.mem), size)
+#define gui_bsp_free(gui, ptr) heap_api_free(&((gui)->bspapi.mem), ptr)
 
 typedef enum {
     GUINONE,
@@ -235,9 +236,11 @@ component_t *gui_set_focus (pane_t *pane, component_t *com, component_t *prev);
 component_t *gui_set_next_focus (gui_t *gui);
 void gui_com_set_dirty (gui_t *gui, component_t *com);
 void gui_pane_set_dirty (gui_t *gui, pane_t *pane);
+void gui_set_repaint (pane_t *pane, int repaint);
 
-void gui_get_font_prop (fontprop_t *prop, const void *font);
-const void *gui_get_font_4_size (gui_t *gui, int size, int bestmatch);
+void gui_get_font_prop (gui_t *gui, fontprop_t *prop, const void *font);
+const void *gui_get_font_4_size (gui_t *gui, int size);
+void gui_draw_attach (gui_bsp_api_t *api);
 
 typedef int (*win_alert_hdlr_t) (const component_t *);
 typedef int (*win_user_hdlr_t) (gevt_t *);

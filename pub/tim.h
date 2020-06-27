@@ -29,6 +29,7 @@ int hal_timer_init (timer_desc_t *desc, void *hw, irqn_t irqn);
 int hal_hires_timer_init (timer_desc_t *desc);
 int hal_timer_deinit (timer_desc_t *desc);
 uint32_t hal_timer_value (timer_desc_t *desc);
+void hal_timer_irq_handler (void *hw);
 
 
 #ifdef __cplusplus

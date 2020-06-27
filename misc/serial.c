@@ -12,13 +12,13 @@
 #include <tim.h>
 #include <misc_utils.h>
 #include <debug.h>
-#include <config.h>
 #include <heap.h>
 #include <dev_io.h>
 #include <serial.h>
 #include <bsp_cmd.h>
 #include <term.h>
 
+#define TX_FLUSH_TIMEOUT 200 /*MS*/
 
 #if DEBUG_SERIAL_USE_DMA
 #define SERIAL_TX_BUFFERIZED 1
@@ -28,159 +28,130 @@
 
 #define str_replace_2_ascii(str) d_stoalpha(str)
 
-#include "../../common/int/uart_int.h"
+static tty_txbuf_t *_serial_tty_alloc_txbuf (serial_tty_t *tty);
+static tty_txbuf_t *_serial_tty_free_txbuf (serial_tty_t *tty);
 
-extern void serial_led_on (void);
-extern void serial_led_off (void);
 
-#if SERIAL_TX_BUFFERIZED
-
-#define STREAM_BUFSIZE 512
-#define STREAM_BUFCNT 2
-#define STREAM_BUFCNT_MS (STREAM_BUFCNT - 1)
-
-typedef struct {
-    char data[STREAM_BUFSIZE + 1];
-    int  bufposition;
-    uint32_t timestamp;
-} streambuf_t;
-
-static streambuf_t streambuf[STREAM_BUFCNT];
-#ifndef SERIAL_TX_TIMESTAMP
-#define SERIAL_TX_TIMESTAMP 1
-#endif
-#endif /*SERIAL_TX_BUFFERIZED*/
-
-int32_t g_serial_rxtx_eol_sens = '\n';
-
-#if SERIAL_TX_TIMESTAMP
-
-static int prev_putc = -1;
-
-static void inline
-__scan_last_char (const char *str, int size)
+static char __look_for_LF (const char *str, int size)
 {
-    if (!str || !size) {
-        return;
-    }
     str = str + size - 1;
-    while (*str) {
-        prev_putc = *str;
+    while (*str && size > 0) {
         if (*str == '\n') {
             break;
         }
-        str--;
+        str--; size--;
     }
+    return *str;
+}
+static inline int __set_tstamp (serial_tty_t *tty, char *buf, int buflen)
+{
+    int size = 0;
+    if (__tty_is_crlf_char(tty->last_tx_char)) {
+        uint32_t msec = d_time();
+
+        size = snprintf(buf, buflen, "[%4d.%03d] ", msec / 1000, msec % 1000);
+    }
+    return size;
 }
 
-static inline int
-__insert_tx_time_ms (const char *fmt, char *buf, int max)
+static void tty_txbuf_append_data (tty_txbuf_t *stbuf, const void *data, size_t size)
 {
-    uint32_t msec, sec;
-
-    if (prev_putc < 0 ||
-        prev_putc != '\n') {
-        return 0;
+    d_memcpy(stbuf->data + stbuf->data_cnt, data, size);
+    if (stbuf->data_cnt == 0) {
+        stbuf->timestamp = d_time() + TX_FLUSH_TIMEOUT;
     }
-    msec = d_time();
-    return snprintf(buf, max, "[%4d.%03d] ", msec / 1000, msec % 1000);
-}
-#endif /*SERIAL_TX_TIMESTAMP*/
-
-#if SERIAL_TX_BUFFERIZED
-static void __submit_to_hw (uart_desc_t *uart_desc, streambuf_t *stbuf)
-{
-    if (uart_hal_submit_tx_data(uart_desc, stbuf->data, stbuf->bufposition) < 0) {
-        fatal_error("%s() : fail\n", __func__);
-    }
-    stbuf->bufposition = 0;
-    stbuf->timestamp = 0;
+    stbuf->data_cnt += size;
 }
 
-static void __buf_append_data (streambuf_t *stbuf, const void *data, size_t size)
+static int serial_tty_flush (serial_tty_t *tty)
 {
-    char *p = stbuf->data + stbuf->bufposition;
-    d_memcpy(p, data, size);
-    if (stbuf->bufposition == 0) {
-        stbuf->timestamp = d_time();
+    tty_txbuf_t *txbuf;
+    int size = 0;
+
+    txbuf = _serial_tty_free_txbuf(tty);
+    if (txbuf && txbuf->data_cnt) {
+
+        if (tty->tx_start(tty, txbuf) < 0) {
+            fatal_error("%s() : fail\n", __func__);
+        }
+        size = txbuf->data_cnt;
+        txbuf->data_cnt = 0;
+        txbuf->timestamp = 0;
     }
-    stbuf->bufposition += size;
+    return size;
 }
 
-int serial_submit_tx_data (uart_desc_t *uart_desc, const void *data, size_t size, d_bool flush)
+int serial_tty_append_txbuf (serial_tty_t *tty, const void *data, size_t size)
 {
-    streambuf_t *active_stream = &streambuf[uart_desc->tx_id & STREAM_BUFCNT_MS];
+    tty_txbuf_t *txbuf = tty->txbuf_list.head;
 
-    if (size > STREAM_BUFSIZE) {
-        size = STREAM_BUFSIZE;
+    if (!txbuf) {
+        txbuf = _serial_tty_alloc_txbuf(tty);
+        assert(txbuf);
+    }
+    if (txbuf == tty->txbuf_pending) {
+        return -1;
+    }
+    if (tty->tx_bufsize && (size > tty->tx_bufsize)) {
+        size = tty->tx_bufsize;
     }
 
-#if SERIAL_TX_TIMESTAMP
-    __scan_last_char((const char *)data, size);
-#endif
-    if (uart_desc->tx_direct) {
-        __buf_append_data(active_stream, data, size);
-        __submit_to_hw(uart_desc, active_stream);
-        return size;
+    tty->last_tx_char = __look_for_LF((const char *)data, size);
+
+    if (size >= (tty->tx_bufsize - txbuf->data_cnt)) {
+        txbuf = _serial_tty_alloc_txbuf(tty);
+        serial_tty_flush(tty);
     }
-    if (flush || size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
-        __submit_to_hw(uart_desc, active_stream);
-        active_stream = &streambuf[(++uart_desc->tx_id) & STREAM_BUFCNT_MS];
-    }
-    if (size >= (STREAM_BUFSIZE - active_stream->bufposition)) {
-        fatal_error("%s() : fail\n", __func__);
-    }
-    if (size) {
-        __buf_append_data(active_stream, data, size);
+    if (txbuf && size) {
+        tty_txbuf_append_data(txbuf, data, size);
     }
     return size;
 }
 
 int bsp_serial_send (char *buf, size_t cnt)
 {
-extern timer_desc_t uart_hal_wdog_tim;
-    irqmask_t irq_flags = uart_hal_wdog_tim.irqmask;
-    uart_desc_t *uart_desc = uart_get_stdio_port();
+    serial_tty_t *tty = hal_tty_get_vcom_port();
+    irqmask_t irq_flags = tty->irqmask;
     int ret = 0;
 
-    if (inout_early_clbk) {
-        inout_early_clbk(buf, cnt, '>');
-    }
-    bsp_inout_forward(buf, cnt, '>');
+    tty->inout_hook(buf, cnt, '>');
 
     irq_save(&irq_flags);
-    ret = serial_submit_tx_data(uart_desc, buf, cnt, d_false);
-    if (ret <= 0) {
-        ret = serial_submit_tx_data(uart_desc, buf, cnt, d_true);
-    }
+    ret = serial_tty_append_txbuf(tty, buf, cnt);
     irq_restore(irq_flags);
     return ret;
 }
 
 void serial_flush (void)
 {
-    uart_hal_tx_flush_all();
+    hal_tty_flush_any();
 }
 
-#else /*SERIAL_TX_BUFFERIZED*/
-
-int bsp_serial_send (char *buf, size_t cnt)
+int serial_tty_tx_flush_proc (serial_tty_t *tty, d_bool flush)
 {
-    uart_desc_t *uart_desc = uart_get_stdio_port();
-    
-    return uart_hal_submit_tx_data(uart_desc, buf, cnt);
-}
+    int size = 0;
 
-void serial_flush (void)
-{
+    if (flush) {
+        while (tty->txbuf_list.head) {
+            size += serial_tty_flush(tty);
+        }
+    } else {
+        tty_txbuf_t *a = tty->txbuf_list.head;
+        if (d_time() > a->timestamp) {
+            size = serial_tty_flush(tty);
+        }
+    }
+    return size;
 }
-
-#endif /*SERIAL_TX_BUFFERIZED*/
 
 void serial_safe_mode (int safe)
 {
-    uart_desc_t *uart_desc = uart_get_stdio_port();
-    uart_hal_set_tx_mode(uart_desc, !safe);
+    serial_tty_t *tty = hal_tty_get_vcom_port();
+    if (safe) {
+        tty->tx_bufsize = 0;
+    } else {
+        tty->tx_bufsize = 512;
+    }
 }
 
 void serial_putc (char c)
@@ -190,17 +161,17 @@ void serial_putc (char c)
 
 char serial_getc (void)
 {
-    /*TODO : Use Rx from USART */
     return 0;
 }
 
 int __dvprintf (const char *fmt, va_list argptr)
 {
+    serial_tty_t *tty = hal_tty_get_vcom_port();
     char            string[1024];
-    int size = 0;
-#if SERIAL_TX_TIMESTAMP
-    size = __insert_tx_time_ms(fmt, string, sizeof(string));
-#endif
+    int size =      0;
+
+    size = __set_tstamp(tty, string, sizeof(string));
+
     size += vsnprintf(string + size, sizeof(string) - size, fmt, argptr);
     bsp_serial_send(string, size);
     return size;
@@ -217,7 +188,6 @@ int dprintf (const char *fmt, ...)
     return size;
 }
 
-/*prints ascii only(printable?)*/
 int aprint (const char *str, int size)
 {
     char            string[1024];
@@ -227,39 +197,102 @@ int aprint (const char *str, int size)
     return size;
 }
 
-void serial_hal_get_tx_buf (uart_desc_t *uart_desc, uint32_t *tstamp, int *pos)
-{
-    streambuf_t *a = &streambuf[uart_desc->tx_id & STREAM_BUFCNT_MS];
-    *tstamp = a->timestamp;
-    *pos = a->bufposition;
-}
-
-uint8_t __tty_is_crlf_char (char c)
-{
-    if (!g_serial_rxtx_eol_sens) {
-        return 0;
-    }
-    if (c == '\r') {
-        return 0x1;
-    }
-    if (c == '\n') {
-        return 0x3;
-    }
-    return 0;
-}
-
 void serial_tickle (void)
 {
     char buf[512];
-    int cnt = sizeof(buf), left;
-    uart_desc_t *uart_desc = uart_get_stdio_port();
+    int cnt = sizeof(buf);
+    serial_tty_t *tty = hal_tty_get_vcom_port();
 
-    left = uart_hal_rx_flush(uart_desc, buf, &cnt);
+    tty->rx_poll(tty, buf, &cnt);
     if (cnt > 0) {
-        if (inout_early_clbk) {
-            inout_early_clbk(buf, cnt, '<');
-        }
-        bsp_inout_forward(buf, cnt, '<');
+        tty->inout_hook(buf, cnt, '<');
     }
 }
+
+void _serial_tty_preinit (serial_tty_t *tty)
+{
+    tty_txbuf_t *txbuf;
+    int i;
+
+    tty->txbuf_list.head = NULL;
+    tty->txbuf_list.tail = NULL;
+    tty->txbuf_rdy.head = NULL;
+    tty->txbuf_rdy.tail = NULL;
+
+    for (i = 0; i < 2; i++) {
+        txbuf = (tty_txbuf_t *)dma_alloc(512);
+        if (!txbuf) {
+            break;
+        }
+        txbuf->next = tty->txbuf_rdy.head;
+        tty->txbuf_rdy.head = txbuf;
+        if (!tty->txbuf_rdy.tail) {
+            tty->txbuf_rdy.tail = txbuf;
+        }
+    }
+
+    tty->rxbuf = (tty_rxbuf_t *)dma_alloc(sizeof(*tty->rxbuf));
+    d_memzero(tty->rxbuf, sizeof(*tty->rxbuf));
+    tty->txbuf_pending =  NULL;
+}
+
+static tty_txbuf_t *_serial_tty_alloc_txbuf (serial_tty_t *tty)
+{
+    irqmask_t irq_flags = tty->irqmask;
+    tty_txbuf_t *txbuf;
+
+    irq_save(&irq_flags);
+    txbuf = tty->txbuf_rdy.head;
+    if (!tty->txbuf_rdy.head) {
+        tty->txbuf_rdy.tail = NULL;
+    }
+
+    if (!txbuf) {
+        irq_restore(irq_flags);
+        return NULL;
+    }
+    tty->txbuf_rdy.head = txbuf->next;
+
+    if (!tty->txbuf_list.head) {
+        tty->txbuf_list.head = txbuf;
+    } else {
+        tty->txbuf_list.tail->next = txbuf;
+    }
+    tty->txbuf_list.tail = txbuf;
+    txbuf->next = NULL;
+    irq_restore(irq_flags);
+    
+    txbuf->data_cnt = 0;
+    return txbuf;
+}
+
+static tty_txbuf_t *_serial_tty_free_txbuf (serial_tty_t *tty)
+{
+    irqmask_t irq_flags = tty->irqmask;
+    tty_txbuf_t *txbuf;
+
+    irq_save(&irq_flags);
+    if (!tty->txbuf_list.tail) {
+        irq_restore(irq_flags);
+        tty->txbuf_list.tail = NULL;
+    }
+
+    txbuf = tty->txbuf_list.head;
+    tty->txbuf_list.head = txbuf->next;
+    if (!tty->txbuf_list.head) {
+        tty->txbuf_list.tail = NULL;
+    }
+
+    if (!tty->txbuf_rdy.head) {
+        tty->txbuf_rdy.head = txbuf;
+    } else {
+        tty->txbuf_rdy.tail->next = txbuf;
+    }
+    tty->txbuf_rdy.tail = txbuf;
+
+    irq_restore(irq_flags);
+    return txbuf;
+}
+
+
 

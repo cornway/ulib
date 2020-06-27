@@ -268,10 +268,8 @@ int bin_execute (int argc, const char **argv)
             break;
             case BIN_LINK:
                 return b_execute_link(binpath);
-            break;
             case BIN_CMD:
                 return b_execute_cmd(binpath);
-            break;
             default:
                 assert(0);
         }
@@ -373,8 +371,7 @@ __boot_log_comp_hex_u32 (const void *a, const void *b, int size)
     return size * sizeof(uint32_t);
 }
 
-int
-boot_log_comp_hex_u32 (const void *a, const void *b, int size)
+int boot_log_comp_hex_u32 (const void *a, const void *b, int size)
 {
     return __boot_log_comp_hex_u32(a, b, size);
 }
