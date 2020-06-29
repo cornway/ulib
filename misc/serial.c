@@ -231,8 +231,6 @@ void _serial_tty_preinit (serial_tty_t *tty)
         }
     }
 
-    tty->rxbuf = (tty_rxbuf_t *)dma_alloc(sizeof(*tty->rxbuf));
-    d_memzero(tty->rxbuf, sizeof(*tty->rxbuf));
     tty->txbuf_pending =  NULL;
 }
 
@@ -289,6 +287,7 @@ static tty_txbuf_t *_serial_tty_free_txbuf (serial_tty_t *tty)
         tty->txbuf_rdy.tail->next = txbuf;
     }
     tty->txbuf_rdy.tail = txbuf;
+    txbuf->next = NULL;
 
     irq_restore(irq_flags);
     return txbuf;

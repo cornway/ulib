@@ -41,7 +41,7 @@ typedef struct serial_tty_s {
     int         tx_bufsize;
     char        last_tx_char;
 
-    tty_rxbuf_t *rxbuf;
+    tty_rxbuf_t rxbuf;
 
     irqn_t      irqmask;
     unsigned int initialized: 1;
