@@ -80,15 +80,15 @@ static void vid_mpu_create (lcd_wincfg_t *cfg, size_t *fb_size)
     switch (cfg->config.cachealgo) {
         case VID_CACHE_NONE:
             /*Non-cacheable*/
-            mpu_conf = "-xscb";
+            mpu_conf = "-c";
         break;
         case VID_CACHE_WTWA:
             /*Write through, no write allocate*/
-            mpu_conf = "-xsb";
+            mpu_conf = "c";
         break;
         case VID_CACHE_WBNWA:
             /*Write-back, no write allocate*/
-            mpu_conf = "-xs";
+            mpu_conf = "bc";
         break;
     }
 

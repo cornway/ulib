@@ -220,7 +220,7 @@ void _serial_tty_preinit (serial_tty_t *tty)
     tty->txbuf_rdy.tail = NULL;
 
     for (i = 0; i < 2; i++) {
-        txbuf = (tty_txbuf_t *)dma_alloc(512);
+        txbuf = (tty_txbuf_t *)dma_alloc(sizeof(tty_txbuf_t));
         if (!txbuf) {
             break;
         }

@@ -81,6 +81,7 @@ void heap_free (void *p);
 #endif /*#HEAP_TRACE*/
 
 void *dma_alloc (size_t size);
+void dma_free (void *p);
 void *heap_alloc_shared_align (size_t size, size_t align);
 
 #define heap_set_api_shared(api)            \

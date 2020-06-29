@@ -21,9 +21,9 @@ typedef struct {
 
 typedef struct tty_txbuf_s {
     struct tty_txbuf_s *next;
-    char data[512];
     uint16_t data_cnt;
     uint32_t timestamp;
+    char data[512];
 } tty_txbuf_t;
 
 typedef struct {

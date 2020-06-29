@@ -120,7 +120,6 @@ void heap_stat (void)
 void heap_init (void)
 {
     arch_word_t heap_mem, heap_size;
-    arch_word_t sp_mem, sp_size;
     void *dma_pool_buf = NULL;
     size_t dma_pool_size = 0x8000;
 
@@ -135,11 +134,7 @@ void heap_init (void)
     dma_pool_buf = m_malloc_align(heap_pool, dma_pool_size, dma_pool_size);
     assert(dma_pool_buf);
     dma_pool = m_pool_init(dma_pool_buf, dma_pool_size);
-    if (mpu_lock((arch_word_t)dma_pool_buf, &dma_pool_size, "-xsb") < 0) {
-        assert(0);
-    }
-    arch_get_stack(&sp_mem, &sp_size);
-    if (mpu_lock(sp_mem, &sp_size, "-xsb") < 0) {
+    if (mpu_lock((arch_word_t)dma_pool_buf, &dma_pool_size, "c") < 0) {
         assert(0);
     }
 #else
@@ -253,6 +248,11 @@ void heap_free (void *p)
 void *dma_alloc (size_t size)
 {
     return m_malloc(dma_pool, size);
+}
+
+void dma_free (void *p)
+{
+    heap_free(p);
 }
 
 void *heap_alloc_shared_align (size_t size, size_t align)

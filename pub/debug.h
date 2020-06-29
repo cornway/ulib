@@ -1,6 +1,14 @@
 #ifndef _SERIAL_DEBUG_H_
 #define _SERIAL_DEBUG_H_
 
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdarg.h>
+
+#include <arch.h>
+#include <bsp_api.h>
+
 #ifdef __cplusplus
     extern "C" {
 #endif

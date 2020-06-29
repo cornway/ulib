@@ -109,7 +109,6 @@ int bsp_drv_init (void)
 
     bsp_stdin_register_if(con_echo);
     heap_stat();
-    mpu_init();
     cmd_init();
     vid_init();
 
@@ -139,6 +138,7 @@ void dev_deinit (void)
     vid_deinit();
     heap_dump();
     hal_tty_destroy_any();
+    mpu_deinit();
 }
 
 int bsp_drv_main (void)
@@ -147,6 +147,7 @@ int bsp_drv_main (void)
     int argc = 0;
 
     dev_hal_preinit();
+    mpu_init();
     heap_init();
     dev_hal_init();
     bsp_drv_init();
