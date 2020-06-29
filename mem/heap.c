@@ -120,23 +120,25 @@ void heap_stat (void)
 void heap_init (void)
 {
     arch_word_t heap_mem, heap_size;
-    void *dma_pool_buf = NULL;
-    size_t dma_pool_size = 0x8000;
-
-    arch_get_heap(&heap_mem, &heap_size);
+    size_t dma_pool_size = 0x10000;
 
     m_init();
+
+    arch_get_heap(&heap_mem, &heap_size);
+    heap_size -= dma_pool_size;
+
     heap_pool = m_pool_init((void *)heap_mem, heap_size);
 
 #ifdef BOOT
-    arch_get_usr_heap(&heap_mem, &heap_size);
-    heap_shared_pool = m_pool_init((void *)heap_mem, heap_size);
-    dma_pool_buf = m_malloc_align(heap_pool, dma_pool_size, dma_pool_size);
-    assert(dma_pool_buf);
-    dma_pool = m_pool_init(dma_pool_buf, dma_pool_size);
-    if (mpu_lock((arch_word_t)dma_pool_buf, &dma_pool_size, "c") < 0) {
+    assert(heap_size > dma_pool_size);
+    heap_mem += heap_size;
+    dma_pool = m_pool_init((void *)heap_mem, dma_pool_size);
+    if (mpu_lock(heap_mem, &dma_pool_size, "c") < 0) {
         assert(0);
     }
+
+    arch_get_usr_heap(&heap_mem, &heap_size);
+    heap_shared_pool = m_pool_init((void *)heap_mem, heap_size);
 #else
     heap_shared_pool = heap_pool;
     dma_pool = NULL;

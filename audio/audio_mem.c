@@ -22,7 +22,6 @@ typedef struct {
     d_bool dirty;
 } a_master_t;
 
-static snd_sample_t master_buf_raw[2][AUDIO_OUT_BUFFER_SIZE] ALIGN(8);
 a_master_t master_track[2];
 snd_sample_t *master_base_raw;
 size_t master_base_samples;
@@ -103,22 +102,36 @@ a_channel_unlink (a_channel_head_t *head, a_channel_t *node)
 void
 a_mem_init (void)
 {
-    master_track[0].buf = master_buf_raw[0];
+    arch_word_t buf_size = AUDIO_OUT_BUFFER_SIZE * sizeof(snd_sample_t);
+    snd_sample_t *master_buf_raw = (snd_sample_t *)dma_alloc(buf_size * 2 + 8);
+
+    if (!master_buf_raw) {
+        error_handle();
+    }
+    master_base_raw = &master_buf_raw[0];
+    master_base_samples = AUDIO_OUT_BUFFER_SIZE * 2;
+
+    master_buf_raw = (snd_sample_t *)ROUND_UP((arch_word_t)master_buf_raw, 8);
+
+    master_track[0].buf = master_buf_raw;
     master_track[0].samples = AUDIO_OUT_BUFFER_SIZE;
     master_track[0].dirty = d_false;
 
-    master_track[1].buf = master_buf_raw[1];
+    master_track[1].buf = &master_buf_raw[AUDIO_OUT_BUFFER_SIZE];
     master_track[1].samples = AUDIO_OUT_BUFFER_SIZE;
     master_track[1].dirty = d_false;
+}
 
-    master_base_raw = master_buf_raw[0];
-    master_base_samples = AUDIO_OUT_BUFFER_SIZE * 2;
+void
+a_mem_deinit (void)
+{
+    dma_free(master_base_raw);
 }
 
 void
 a_get_master_base (a_buf_t *master)
 {
-    master->buf = master_base_raw;
+    master->buf = master_track[0].buf;
     master->samples = master_base_samples;
 }
 
@@ -144,7 +157,7 @@ void a_clear_abuf (a_buf_t *abuf)
 
 void a_clear_master (void)
 {
-    uint64_t *p_buf = (uint64_t *)master_base_raw;
+    uint64_t *p_buf = (uint64_t *)master_track[0].buf;
 
     for (int i = 0; i < AUDIO_SAMPLES_2_DWORDS(master_base_samples); i++) {
         p_buf[i] = 0;

@@ -279,6 +279,7 @@ void audio_deinit (void)
     a_hal_deinit();
     /*TODO : use deinit..*/
     cd_init();
+    a_mem_deinit();
 }
 
 audio_channel_t *audio_play_channel (Mix_Chunk *chunk, int channel)
