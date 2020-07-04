@@ -35,8 +35,8 @@ static screen_update_handler_t vid_scaler_handler = NULL;
 uint32_t bsp_lcd_width = (uint32_t)-1;
 uint32_t bsp_lcd_height = (uint32_t)-1;
 
-static lcd_wincfg_t lcd_def_cfg;
-lcd_wincfg_t *lcd_active_cfg = NULL;
+static lcd_t lcd_def_cfg;
+lcd_t *lcd = NULL;
 
 const lcd_layers_t layer_switch[LCD_MAX_LAYER] =
 {
@@ -65,14 +65,14 @@ int vid_init (void)
     return screen_hal_init(1);
 }
 
-static void vid_mpu_release (lcd_wincfg_t *cfg)
+static void vid_mpu_release (lcd_t *cfg)
 {
     if (cfg->raw_mem) {
         mpu_unlock((arch_word_t)cfg->raw_mem, cfg->fb_size + cfg->extmem_size);
     }
 }
 
-static void vid_mpu_create (lcd_wincfg_t *cfg, size_t *fb_size)
+static void vid_mpu_create (lcd_t *cfg, size_t *fb_size)
 {
     int i;
     const char *mpu_conf = NULL;
@@ -104,7 +104,7 @@ static void vid_mpu_create (lcd_wincfg_t *cfg, size_t *fb_size)
     }
 }
 
-static void vid_release (lcd_wincfg_t *cfg)
+static void vid_release (lcd_t *cfg)
 {
     if (NULL == cfg) {
         return;
@@ -125,32 +125,32 @@ void vid_deinit (void)
 {
     dprintf("%s() :\n", __func__);
     screen_hal_init(0);
-    vid_release(lcd_active_cfg);
-    lcd_active_cfg = NULL;
+    vid_release(lcd);
+    lcd = NULL;
 }
 
 int vid_set_keying (uint32_t color, int layer)
 {
-    if (layer >= lcd_active_cfg->config.laynum || layer < 0) {
+    if (layer >= lcd->config.laynum || layer < 0) {
         return -1;
     }
-    screen_hal_set_keying(lcd_active_cfg, color, (lcd_layers_t)layer);
+    screen_hal_set_keying(lcd, color, (lcd_layers_t)layer);
     return 0;
 }
 
 void vid_wh (screen_t *s)
 {
-    if (!lcd_active_cfg) {
+    if (!lcd) {
         s->width = bsp_lcd_width;
         s->height = bsp_lcd_height;
     } else {
-        s->width = lcd_active_cfg->w;
-        s->height = lcd_active_cfg->h;
+        s->width = lcd->w;
+        s->height = lcd->h;
     }
 }
 
 static void *
-vid_create_framebuffer (screen_alloc_t *alloc, lcd_wincfg_t *cfg,
+vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *cfg,
                        uint32_t w, uint32_t h, uint32_t pixel_deep, uint32_t layers_cnt)
 {
     const uint32_t lay_mem_align = 64;
@@ -197,7 +197,7 @@ void vid_ptr_align (int *x, int *y)
 static screen_update_handler_t vid_get_scaler (int scale, uint8_t colormode)
 {
     screen_update_handler_t h = NULL;
-    screen_conf_t *conf = &lcd_active_cfg->config;
+    screen_conf_t *conf = &lcd->config;
 
     if (colormode == GFX_COLOR_MODE_CLUT) {
         switch (scale) {
@@ -236,7 +236,7 @@ static screen_update_handler_t vid_get_scaler (int scale, uint8_t colormode)
     return h;
 }
 
-static lcd_wincfg_t *vid_new_winconfig (lcd_wincfg_t *cfg)
+static lcd_t *vid_new_winconfig (lcd_t *cfg)
 {
     if (!cfg) {
         cfg = &lcd_def_cfg;
@@ -275,14 +275,14 @@ int vid_config (screen_conf_t *conf)
 {
     uint32_t scale;
     int x, y, w, h;
-    lcd_wincfg_t *cfg;
+    lcd_t *cfg;
 
-    cfg = vid_new_winconfig(lcd_active_cfg);
-    if ((lcd_wincfg_t *)cfg == lcd_active_cfg) {
+    cfg = vid_new_winconfig(lcd);
+    if ((lcd_t *)cfg == lcd) {
         return 0;
     }
-    lcd_active_cfg = cfg;
-    lcd_active_cfg->config = *conf;
+    lcd = cfg;
+    lcd->config = *conf;
     scale = vid_set_win_size(conf->res_x, conf->res_y, bsp_lcd_width, bsp_lcd_height, &x, &y, &w, &h);
 
     vid_scaler_handler = vid_get_scaler(scale, conf->colormode);
@@ -303,34 +303,34 @@ int vid_config (screen_conf_t *conf)
 
 uint32_t vid_mem_avail (void)
 {
-    assert(lcd_active_cfg);
-    return ((lcd_active_cfg->fb_size) / 1024);
+    assert(lcd);
+    return ((lcd->fb_size) / 1024);
 }
 
 void vid_vsync (int mode)
 {
     profiler_enter();
     if (mode) {
-        screen_hal_layreload(lcd_active_cfg);
+        screen_hal_layreload(lcd);
     }
-    screen_hal_sync(lcd_active_cfg, 1);
+    screen_hal_sync(lcd, 1);
     profiler_exit();
 }
 
 void vid_get_screen (screen_t *screen, int laynum)
 {
-    screen->width = lcd_active_cfg->w;
-    screen->height = lcd_active_cfg->h;
-    screen->buf = (void *)lcd_active_cfg->lay_mem[laynum];
+    screen->width = lcd->w;
+    screen->height = lcd->h;
+    screen->buf = (void *)lcd->lay_mem[laynum];
     screen->x = 0;
     screen->y = 0;
-    screen->colormode = lcd_active_cfg->config.colormode;
+    screen->colormode = lcd->config.colormode;
     screen->alpha = 0xff;
 }
 
 void vid_get_ready_screen (screen_t *screen)
 {
-    vid_get_screen(screen, lcd_active_cfg->ready_lay_idx);
+    vid_get_screen(screen, lcd->ready_lay_idx);
 }
 
 static int
@@ -400,7 +400,7 @@ vid_blend8 (rgba_t *pal, int palnum, uint8_t _fg, uint8_t _bg, uint8_t a)
     return vid_get_pal8_idx(pal, palnum, GFX_ARGB8888_R(pix), GFX_ARGB8888_G(pix), GFX_ARGB8888_B(pix));
 }
 
-static void vid_gen_blut8 (lcd_wincfg_t *cfg, void *palette, int numentries)
+static void vid_gen_blut8 (lcd_t *cfg, void *palette, int numentries)
 {
     int i, j;
     blut8_t *blut;
@@ -430,16 +430,14 @@ static void vid_gen_blut8 (lcd_wincfg_t *cfg, void *palette, int numentries)
 
 void vid_set_clut (void *palette, uint32_t clut_num_entries)
 {
-    int layer;
+    int layer = 0;
 
-    assert(lcd_active_cfg);
-    screen_hal_sync(lcd_active_cfg, 1);
-    if (lcd_active_cfg->config.use_clut && NULL == lcd_active_cfg->blut) {
-        vid_gen_blut8(lcd_active_cfg, palette, clut_num_entries);
+    assert(lcd);
+    screen_hal_sync(lcd, 1);
+    if (lcd->config.use_clut && NULL == lcd->blut) {
+        vid_gen_blut8(lcd, palette, clut_num_entries);
     }
-    for (layer = 0; layer < lcd_active_cfg->config.laynum; layer++) {
-        screen_hal_set_clut (lcd_active_cfg, palette, clut_num_entries, layer);
-    }
+    screen_hal_set_clut (lcd, palette, clut_num_entries, layer);
 }
 
 static void vid_setup_filter (void)
@@ -460,11 +458,12 @@ void vid_update (screen_t *in)
     if (in == NULL) {
         vid_vsync(1);
     } else {
-        in->colormode = lcd_active_cfg->config.colormode;
+        in->colormode = lcd->config.colormode;
         in->alpha = 0xff;
         vid_setup_filter();
         vid_scaler_handler(in);
     }
+    screen_hal_post_sync(lcd);
 }
 
 void vid_direct (int x, int y, screen_t *s, int laynum)
@@ -472,7 +471,7 @@ void vid_direct (int x, int y, screen_t *s, int laynum)
     screen_t screen;
 
     vid_vsync(1);
-    if (lcd_active_cfg->config.laynum <= laynum) {
+    if (lcd->config.laynum <= laynum) {
         
     }
     if (laynum < 0) {
@@ -489,14 +488,14 @@ void vid_direct (int x, int y, screen_t *s, int laynum)
 
 void vid_print_info (void)
 {
-    assert(lcd_active_cfg);
+    assert(lcd);
 
     dprintf("\n");
     dprintf("Video+ :\n");
-    dprintf("width=%4.3u height=%4.3u\n", lcd_active_cfg->w, lcd_active_cfg->h);
+    dprintf("width=%4.3u height=%4.3u\n", lcd->w, lcd->h);
     dprintf("layers = %u, color mode = %s \n",
-             lcd_active_cfg->config.laynum, screen_mode2txt_map[lcd_active_cfg->config.colormode]);
-    dprintf("framebuffer = <0x%p> 0x%08x bytes\n", lcd_active_cfg->raw_mem, lcd_active_cfg->fb_size);
+             lcd->config.laynum, screen_mode2txt_map[lcd->config.colormode]);
+    dprintf("framebuffer = <0x%p> 0x%08x bytes\n", lcd->raw_mem, lcd->fb_size);
     dprintf("Video-\n");
 }
 
@@ -504,11 +503,11 @@ static int
 vid_copy_HW (screen_t *dest, screen_t *src)
 {
     copybuf_t copybuf = {NULL, *dest, *src};
-    uint8_t colormode = lcd_active_cfg->config.colormode;
+    uint8_t colormode = lcd->config.colormode;
 
     vid_vsync(0);
     assert(screen_mode2pixdeep[colormode]);
-    return screen_hal_copy_m2m(lcd_active_cfg, &copybuf, screen_mode2pixdeep[colormode]);
+    return screen_hal_copy_m2m(lcd, &copybuf, screen_mode2pixdeep[colormode]);
 }
 
 int vid_copy (screen_t *dest, screen_t *src)
@@ -518,7 +517,7 @@ int vid_copy (screen_t *dest, screen_t *src)
 
 int vid_copy_line_8b (void *dest, void *src, int w)
 {
-    return screen_gfx8_copy_line(lcd_active_cfg, dest, src, w);
+    return screen_gfx8_copy_line(lcd, dest, src, w);
 }
 
 int vid_gfx2d_direct (int x, int y, gfx_2d_buf_t *src, int laynum)
@@ -532,7 +531,7 @@ int vid_gfx2d_direct (int x, int y, gfx_2d_buf_t *src, int laynum)
     screen.x = x;
     screen.y = y;
     __screen_to_gfx2d(&dest, &screen);
-    return screen_gfx8888_copy(lcd_active_cfg, &dest, src);
+    return screen_gfx8888_copy(lcd, &dest, src);
 }
 
 static void
@@ -556,7 +555,7 @@ screen_copy_1x1_HW (screen_t *in)
     copybuf.dest = screen;
     copybuf.src = *in;
 
-    screen_hal_copy_m2m(lcd_active_cfg, &copybuf, 1);
+    screen_hal_copy_m2m(lcd, &copybuf, 1);
 }
 
 static void
@@ -571,9 +570,9 @@ screen_copy_2x2_HW (screen_t *in)
     copybuf.dest = screen;
     copybuf.src = *in;
 
-    copybuf.dest.colormode = lcd_active_cfg->config.colormode;
-    copybuf.src.colormode = lcd_active_cfg->config.colormode;
-    screen_hal_scale_h8_2x2(lcd_active_cfg, &copybuf, lcd_active_cfg->config.hwaccel > 1);
+    copybuf.dest.colormode = lcd->config.colormode;
+    copybuf.src.colormode = lcd->config.colormode;
+    screen_hal_scale_h8_2x2(lcd, &copybuf, lcd->config.hwaccel > 1);
 }
 
 static void
@@ -595,7 +594,7 @@ screen_copy_2x2_8bpp_filt (screen_t *in)
     screen_t screen;
     gfx_2d_buf_t dest, src;
 
-    if (NULL == lcd_active_cfg->blut) {
+    if (NULL == lcd->blut) {
         screen_copy_2x2_8bpp(in);
         return;
     }
@@ -603,10 +602,10 @@ screen_copy_2x2_8bpp_filt (screen_t *in)
     vid_vsync(1);
     __screen_to_gfx2d(&dest, &screen);
     __screen_to_gfx2d(&src, in);
-    if (lcd_active_cfg->bilinear) {
-        gfx2d_scale2x2_8bpp_filt_Bi((blut8_t *)((uint32_t)lcd_active_cfg->blut + lcd_active_cfg->blutoff), &dest, &src);
+    if (lcd->bilinear) {
+        gfx2d_scale2x2_8bpp_filt_Bi((blut8_t *)((uint32_t)lcd->blut + lcd->blutoff), &dest, &src);
     } else {
-        gfx2d_scale2x2_8bpp_filt((blut8_t *)((uint32_t)lcd_active_cfg->blut + lcd_active_cfg->blutoff), &dest, &src);
+        gfx2d_scale2x2_8bpp_filt((blut8_t *)((uint32_t)lcd->blut + lcd->blutoff), &dest, &src);
     }
 }
 
@@ -629,8 +628,8 @@ int vid_priv_ctl (int c, void *v)
 {
     switch (c) {
         case LCD_PRIV_GET_TRANSP_LUT:
-            if (lcd_active_cfg->blut) {
-                blut8_t *blut = (blut8_t *)((arch_word_t)lcd_active_cfg->blut + lcd_active_cfg->blutoff);
+            if (lcd->blut) {
+                blut8_t *blut = (blut8_t *)((arch_word_t)lcd->blut + lcd->blutoff);
                 *(blut8_t **)v = blut;
             } else {
                 return -CMDERR_NOCORE;
@@ -641,3 +640,4 @@ int vid_priv_ctl (int c, void *v)
     }
     return 0;
 }
+
