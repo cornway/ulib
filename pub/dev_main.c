@@ -47,8 +47,8 @@ int app_main (void)
 
     dev_hal_init();
     heap_init();
-
     bsp_drv_init();
+    heap_stat();
     VID_PreConfig();
 
     return mainloop(argc, argv);

@@ -9,6 +9,7 @@
 #include <heap.h>
 #include <debug.h>
 #include <term.h>
+#include <bsp_sys.h>
 
 #define MGAP (16)
 #define MMINSZ (MGAP + sizeof(mchunk_t))
@@ -27,6 +28,7 @@ typedef struct mchunk_s {
     struct mchunk_s *next;
     struct mchunk_s *next_frag;
     struct mlist_s *mlist;
+    const char *name;
     size_t size;
     uint8_t *data;
 } mchunk_t;
@@ -182,7 +184,7 @@ static inline mchunk_t *mpool_best_fit (mchunk_t *head, size_t size)
     return head;
 }
 
-static void *mpool_alloc (mpool_t *mpool, size_t size)
+static void *mpool_alloc (mpool_t *mpool, size_t size, const char *caller_name)
 {
     const size_t memsize = ROUND_UP((size + sizeof(mchunk_t) + MGAP), MALLIGN);
     mchunk_t *chunk;
@@ -207,6 +209,7 @@ static void *mpool_alloc (mpool_t *mpool, size_t size)
 
     chunk->data = (uint8_t *)(chunk + 1);
     mpool_set_magic(chunk);
+    chunk->name = caller_name;
     return chunk->data;
 }
 
@@ -363,10 +366,10 @@ void m_init (void)
     d_memset(dmem.magic + MMAGIC_SIZE, MPROTECT, MPROTECT_SIZE);
 }
 
-void *m_malloc (void *pool, uint32_t size)
+void *m_malloc (void *pool, uint32_t size, const char *caller_name)
 {
     mpool_t *mpool = (mpool_t *)pool;
-    return mpool_alloc(mpool, size);
+    return mpool_alloc(mpool, size, caller_name);
 }
 
 void *m_malloc_align (void *pool, uint32_t size, uint32_t align)
@@ -399,5 +402,26 @@ int m_verify (void *pool)
 {
     mpool_t *mpool = (mpool_t *)pool;
     return mpool_verify(mpool);
+}
+
+void m_stat (void)
+{
+    mpool_t *pool = dmem.arena;
+    mchunk_t *chunk;
+
+    dprintf("%s() +\n", __func__);
+
+    while (pool) {
+        dprintf("%p; id=%d, size=%u bytes, used=%u bytes\n",
+            pool, pool->pool_id, pool->size, pool->usedlist.size);
+        chunk = pool->usedlist.head;
+        while (chunk) {
+            dprintf("%p : %s; size=%u\n", chunk, chunk->name ? : "NULL", chunk->size);
+            chunk = chunk->next;
+        }
+        pool = pool->next;
+    }
+
+    dprintf("%s() -\n", __func__);
 }
 

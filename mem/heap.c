@@ -18,10 +18,12 @@
 
 void *m_pool_init (void *pool, size_t size);
 void m_init (void);
-void *m_malloc (void *pool, size_t size);
+void *m_malloc (void *pool, size_t size, const char *caller_name);
 void *m_malloc_align (void *pool, uint32_t size, uint32_t align);
 void m_free (void *p);
 size_t m_avail (void *pool);
+void m_stat (void);
+
 
 static void *heap_shared_pool;
 static void *heap_pool;
@@ -45,7 +47,7 @@ __heap_malloc (size_t size)
 {
     void *p;
     size = ROUND_UP(size, sizeof(arch_word_t));
-    p = m_malloc(heap_pool, size);
+    p = m_malloc(heap_pool, size, caller_func);
     if (!p) {
         heap_dbg("[%s] Failed to allocate [%u] bytes\n", caller_func, size);
     }
@@ -89,15 +91,7 @@ __heap_realloc (void *x, size_t size)
 
 void heap_dump (void)
 {
-    arch_word_t heap_mem, heap_size, heap_size_left;
-
-    __arch_get_heap(&heap_mem, &heap_size);
-
-    heap_size_left = heap_size - m_avail(heap_pool);
-    assert(heap_size_left <= heap_size);
-    if (heap_size_left) {
-        dprintf("%s() : Unfreed left : %u bytes\n", __func__, heap_size_left);
-    }
+    m_stat();
 }
 
 void heap_stat (void)
@@ -115,7 +109,11 @@ void heap_stat (void)
     arch_get_usr_heap(&heap_mem, &heap_size);
     dprintf("user heap : <0x%p> + %u bytes\n", (void *)heap_mem, heap_size);
 #endif
+
+    m_stat();
 }
+
+#ifdef BOOT
 
 void heap_init (void)
 {
@@ -125,25 +123,38 @@ void heap_init (void)
     m_init();
 
     arch_get_heap(&heap_mem, &heap_size);
-    heap_size -= dma_pool_size;
-
-    heap_pool = m_pool_init((void *)heap_mem, heap_size);
-
-#ifdef BOOT
     assert(heap_size > dma_pool_size);
+
+    heap_size -= dma_pool_size;
+    heap_pool = m_pool_init((void *)heap_mem, heap_size);
     heap_mem += heap_size;
     dma_pool = m_pool_init((void *)heap_mem, dma_pool_size);
     if (mpu_lock(heap_mem, &dma_pool_size, "c") < 0) {
         assert(0);
     }
+    heap_shared_pool = NULL;
+    if (EXEC_REGION_DRIVER()) {
+        arch_get_usr_heap(&heap_mem, &heap_size);
+        heap_shared_pool = m_pool_init((void *)heap_mem, heap_size);
+    }
+}
 
-    arch_get_usr_heap(&heap_mem, &heap_size);
-    heap_shared_pool = m_pool_init((void *)heap_mem, heap_size);
-#else
+#else /* BOOT */
+
+void heap_init (void)
+{
+    arch_word_t heap_mem, heap_size;
+
+    m_init();
+
+    arch_get_heap(&heap_mem, &heap_size);
+
+    heap_pool = m_pool_init((void *)heap_mem, heap_size);
     heap_shared_pool = heap_pool;
     dma_pool = NULL;
-#endif /*BOOT*/
 }
+
+#endif /* BOOT */
 
 void heap_deinit (void)
 {
@@ -155,7 +166,7 @@ void heap_deinit (void)
 #if HEAP_TRACE
 void *_heap_alloc_shared (size_t size, const char *caller_func)
 {
-    void *p = m_malloc(heap_shared_pool, size);
+    void *p = m_malloc(heap_shared_pool, size, caller_func);
     if (NULL == p) {
         heap_dbg("[%s] : Failed to allocate [%u] bytes\n", caller_func, size);
     }
@@ -166,7 +177,7 @@ void *_heap_alloc_shared (size_t size, const char *caller_func)
 
 void *heap_alloc_shared (size_t size)
 {
-    return m_malloc(heap_shared_pool, size);
+    return m_malloc(heap_shared_pool, size, "NULL");
 }
 
 #endif /* HEAP_TRACE */
@@ -179,9 +190,10 @@ void *_heap_alloc_shared (size_t size, const char *caller_func)
     return __heap_malloc(size, 1, caller_func);
 }
 #else /* HEAP_TRACE */
-void *_heap_alloc_shared (size_t size)
+
+void *heap_alloc_shared (size_t size)
 {
-    return __heap_malloc(size, 1);
+    return m_malloc(heap_shared_pool, size, "NULL");
 }
 
 #endif /*HEAP_TRACE*/
@@ -197,7 +209,7 @@ size_t heap_avail (void)
 
 void *_heap_malloc (size_t  size, const char *caller_func)
 {
-    return __heap_malloc(size, 1, caller_func);
+    return __heap_malloc(size, caller_func);
 }
 
 void *_heap_realloc (void *x, size_t size, const char *caller_func)
@@ -207,7 +219,7 @@ void *_heap_realloc (void *x, size_t size, const char *caller_func)
 
 void *_heap_calloc (size_t size, const char *caller_func)
 {
-    void *p = __heap_malloc(size, 1, caller_func);
+    void *p = __heap_malloc(size, caller_func);
     if (p) {
         d_memzero(p, size);
     }
@@ -249,7 +261,7 @@ void heap_free (void *p)
 
 void *dma_alloc (size_t size)
 {
-    return m_malloc(dma_pool, size);
+    return m_malloc(dma_pool, size, NULL);
 }
 
 void dma_free (void *p)
