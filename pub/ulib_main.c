@@ -105,10 +105,12 @@ void (*dev_deinit_callback) (void) = NULL;
 
 int bsp_drv_init (void)
 {
+    hal_tty_vcom_attach();
+    heap_stat();
+    cs_load_code(NULL, NULL, 0);
     dev_io_init();
 
     bsp_stdin_register_if(con_echo);
-    heap_stat();
     cmd_init();
     vid_init();
 
@@ -139,6 +141,8 @@ void dev_deinit (void)
     heap_dump();
     hal_tty_destroy_any();
     mpu_deinit();
+    d_sleep(10);
+    dev_hal_deinit();
 }
 
 int bsp_drv_main (void)
@@ -146,9 +150,6 @@ int bsp_drv_main (void)
     const char **argv = NULL;
     int argc = 0;
 
-    dev_hal_preinit();
-    mpu_init();
-    heap_init();
     dev_hal_init();
     bsp_drv_init();
     VID_PreConfig();

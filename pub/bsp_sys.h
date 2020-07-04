@@ -57,6 +57,7 @@ int  sys_user_attach (bsp_user_api_t *api);
 
 int dev_hal_preinit (void);
 int dev_hal_init (void);
+int dev_hal_deinit (void);
 int bsp_drv_init (void);
 void dev_deinit (void);
 
