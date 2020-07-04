@@ -54,17 +54,20 @@ int jpeg_decode (jpeg_info_t *info, void *tempbuf, void *data, uint32_t size)
 void *jpeg_2_rawpic (const char *path, void *tmpbuf, uint32_t bufsize)
 {
     void *cache;
-    uint32_t size;
-    jpeg_info_t info;
+    uint32_t size = 0;
+    jpeg_info_t info = {0};
     rawpic_t *rawpic;
 
     cache = jpeg_cache(path, &size);
-    if (!cache) {
+    if (!cache || !size) {
         return NULL;
     }
-    jpeg_decode(&info, tmpbuf, cache, size);
+    if (jpeg_decode(&info, tmpbuf, cache, size) < 0) {
+        dprintf("%s() : Failed\n", __func__);
+        return NULL;
+    }
 
-    size = info.w * info.h * 4;
+    size = info.w * info.h * 4;/* ? */
     rawpic = (rawpic_t *)heap_alloc_shared(size + sizeof(*rawpic));
     if (!rawpic) {
         return NULL;

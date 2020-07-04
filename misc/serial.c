@@ -111,9 +111,13 @@ int serial_tty_append_txbuf (serial_tty_t *tty, const void *data, size_t size)
 int bsp_serial_send (char *buf, size_t cnt)
 {
     serial_tty_t *tty = hal_tty_get_vcom_port();
-    irqmask_t irq_flags = tty->irqmask;
+    irqmask_t irq_flags;
     int ret = 0;
 
+    if (!tty) {
+        return -1;
+    }
+    irq_flags = tty->irqmask;
     tty->inout_hook(buf, cnt, '>');
 
     irq_save(&irq_flags);

@@ -128,6 +128,8 @@ typedef struct pane_s {
 
     uint8_t selectable: 1,
             repaint: 1;
+
+    void (*destroy) (struct pane_s *pane);
 } pane_t;
 
 typedef struct gui_s gui_t;

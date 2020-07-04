@@ -143,11 +143,17 @@ int bsp_stop_wave_sfx (int hdl)
 
 void bsp_release_wave_sfx (int hdl)
 {
-    bsfx_t *sfx = __get_sfx(hdl);
+    bsfx_t *sfx;
 
+    if (hdl < 0) {
+        return;
+    }
+    sfx = __get_sfx(hdl);
     bsp_stop_wave_sfx(hdl);
+    if (sfx) {
+        audio_wave_close(sfx->wavenum);
+        heap_free(sfx);
+    }
     __set_sfx(hdl, NULL);
-    audio_wave_close(sfx->wavenum);
-    heap_free(sfx);
 }
 

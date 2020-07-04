@@ -173,6 +173,8 @@ void gui_destroy (gui_t *gui)
             com = com->next;
         }
         gui_rect_fill(pane->parent, &pane->dim, &pane->dim, COLOR_BLACK);
+        if (pane->destroy)
+            pane->destroy(pane);
         heap_free(pane);
         pane = pane->next;
     }

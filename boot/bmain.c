@@ -348,6 +348,7 @@ void b_dev_deinit_callback (void)
 {
     bres_exec_unload();
     bsp_stout_unreg_if(gui_stdout_hook);
+    bsfx_sound_free();
     gui_destroy(&gui);
 }
 

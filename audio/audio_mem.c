@@ -108,6 +108,7 @@ a_mem_init (void)
     if (!master_buf_raw) {
         error_handle();
     }
+    d_memzero(master_buf_raw, buf_size * 2 + 8);
     master_base_raw = &master_buf_raw[0];
     master_base_samples = AUDIO_OUT_BUFFER_SIZE * 2;
 

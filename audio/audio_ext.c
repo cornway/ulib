@@ -248,8 +248,9 @@ audio_wave_close (int num)
 {
     sfx_cache_t *sfx = a_wave_cached(NULL, num);
 
-    assert(sfx);
-    a_wave_cache_free(sfx);
+    if (sfx) {
+        a_wave_cache_free(sfx);
+    }
 }
 
 

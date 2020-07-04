@@ -768,6 +768,12 @@ WJPEG_HANDLE (void *pane)
     return (win_jpeg_t *)WIN_HANDLE_CHECK(pane, WIN_JPEG);
 }
 
+void win_jpeg_destroy (pane_t *pane)
+{
+    win_jpeg_t *win = WJPEG_HANDLE(pane);
+    heap_free(win->cache);
+}
+
 pane_t *win_new_jpeg (gui_t *gui, prop_t *prop, int x, int y, int w, int h)
 {
     pane_t *pane = gui_create_pane(gui, "jpeg", sizeof(win_jpeg_t));
@@ -786,6 +792,7 @@ pane_t *win_new_jpeg (gui_t *gui, prop_t *prop, int x, int y, int w, int h)
     win->win.pane = pane;
     win->win.type = WIN_JPEG;
 
+    pane->destroy = win_jpeg_destroy;
     return pane;
 }
 
