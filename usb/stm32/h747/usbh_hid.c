@@ -98,6 +98,15 @@ EndBSPDependencies */
 * @{
 */
 
+#if USB_HID_HACK
+static HID_HandleTypeDef hID_HandleTypeDef;
+extern USBH_StatusTypeDef USBH_HID_GamepadInit(USBH_HandleTypeDef *phost);
+
+extern void *g_usb_data;
+extern uint32_t g_usb_data_size;
+extern int8_t g_usb_data_ready;
+#endif
+
 static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost);
 static USBH_StatusTypeDef USBH_HID_InterfaceDeInit(USBH_HandleTypeDef *phost);
 static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost);
@@ -143,8 +152,11 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
   uint8_t num = 0U;
   uint8_t interface;
 
-  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, 0xFFU);
-
+#if USB_HID_HACK
+  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_GMPD_CODE, 0xFF);
+#else
+  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, 0xFF);
+#endif
   if ((interface == 0xFFU) || (interface >= USBH_MAX_NUM_INTERFACES)) /* No Valid Interface */
   {
     USBH_DbgLog("Cannot Find the interface for %s class.", phost->pActiveClass->Name);
@@ -157,8 +169,12 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
   {
     return USBH_FAIL;
   }
-
+#if USB_HID_HACK
+  phost->pActiveClass->pData = &hID_HandleTypeDef;
+#else
   phost->pActiveClass->pData = (HID_HandleTypeDef *)USBH_malloc(sizeof(HID_HandleTypeDef));
+#endif
+
   HID_Handle = (HID_HandleTypeDef *) phost->pActiveClass->pData;
 
   if (HID_Handle == NULL)
@@ -185,9 +201,15 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit(USBH_HandleTypeDef *phost)
   }
   else
   {
-    USBH_UsrLog("Protocol not supported.");
+#if USB_HID_HACK
+    USBH_UsrLog ("Gamepad device found!");
+    HID_Handle->Init =  USBH_HID_GamepadInit;
+#else
+    USBH_UsrLog ("Protocol not supported.");  
     return USBH_FAIL;
+#endif
   }
+
 
   HID_Handle->state     = HID_INIT;
   HID_Handle->ctl_state = HID_REQ_INIT;
@@ -263,8 +285,11 @@ static USBH_StatusTypeDef USBH_HID_InterfaceDeInit(USBH_HandleTypeDef *phost)
 
   if (phost->pActiveClass->pData)
   {
+#if USB_HID_HACK
+    phost->pActiveClass->pData = NULL;
+#else
     USBH_free(phost->pActiveClass->pData);
-    phost->pActiveClass->pData = 0U;
+#endif
   }
 
   return USBH_OK;
@@ -448,7 +473,13 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
 
       HID_Handle->state = HID_POLL;
       HID_Handle->timer = phost->Timer;
-      HID_Handle->DataReady = 0U;
+#if !USB_HID_HACK
+      HID_Handle->DataReady = 0;
+#else
+      memcpy(g_usb_data, HID_Handle->pData, g_usb_data_size);
+      g_usb_data_ready++;
+#endif
+
       break;
 
     case HID_POLL:

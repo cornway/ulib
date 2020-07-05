@@ -161,9 +161,12 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
   
   USBH_StatusTypeDef status = USBH_FAIL ;
   HID_HandleTypeDef *HID_Handle;
-  
+
+#if USB_HID_HACK
   interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_GMPD_CODE, 0xFF);
-  
+#else
+  interface = USBH_FindInterface(phost, phost->pActiveClass->ClassCode, HID_BOOT_CODE, 0xFF);
+#endif
   if(interface == 0xFF) /* No Valid Interface */
   {
     status = USBH_FAIL;  
@@ -194,7 +197,7 @@ static USBH_StatusTypeDef USBH_HID_InterfaceInit (USBH_HandleTypeDef *phost)
     else
     {
 #if USB_HID_HACK
-      USBH_UsrLog ("Gamepad device found!");         
+      USBH_UsrLog ("Gamepad device found!");
       HID_Handle->Init =  USBH_HID_GamepadInit;
 #else
       USBH_UsrLog ("Protocol not supported.");  
@@ -379,9 +382,11 @@ static USBH_StatusTypeDef USBH_HID_ClassRequest(USBH_HandleTypeDef *phost)
   return status; 
 }
 
+#if USB_HID_HACK
 extern void *g_usb_data;
 extern uint32_t g_usb_data_size;
 extern int8_t g_usb_data_ready;
+#endif
 
 /**
   * @brief  USBH_HID_Process 
@@ -433,9 +438,10 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
     HID_Handle->timer = phost->Timer;
 #if !USB_HID_HACK
     HID_Handle->DataReady = 0;
-#endif
+#else
     memcpy(g_usb_data, HID_Handle->pData, g_usb_data_size);
     g_usb_data_ready++;
+#endif
     break;
     
   case HID_POLL:

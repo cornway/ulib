@@ -30,6 +30,8 @@ extern "C" {
 #include "usbh_hid_mouse.h"
 #include "usbh_hid_keybd.h"
 
+#define USB_HID_HACK 1
+
 /** @addtogroup USBH_LIB
   * @{
   */
@@ -252,6 +254,11 @@ HID_HandleTypeDef;
 #define HID_BOOT_CODE                                 0x01U
 #define HID_KEYBRD_BOOT_CODE                          0x01U
 #define HID_MOUSE_BOOT_CODE                           0x02U
+#if USB_HID_HACK
+#define HID_GMPD_CODE                                 0x00
+#else
+#define HID_GMPD_CODE                                 HID_BOOT_CODE
+#endif
 
 
 /**

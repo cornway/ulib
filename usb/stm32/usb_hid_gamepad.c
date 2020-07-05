@@ -15,6 +15,7 @@
 #include "f769/usbh_conf.h"
 #include "f769/usbh_core.h"
 #include "f769/usbh_hid.h"
+#define USBH_HID_FifoInit(fifo, data, size) fifo_init(fifo, data, size)
 #else
 #error
 #endif
@@ -143,8 +144,7 @@ USBH_StatusTypeDef USBH_HID_GamepadInit(USBH_HandleTypeDef *phost)
     }
     HID_Handle->length = g_usb_data_size;
     HID_Handle->pData = (uint8_t *)g_usb_data;
-
-    //fifo_init(&HID_Handle->fifo, phost->device.Data, HID_Handle->length);
+    USBH_HID_FifoInit(&HID_Handle->fifo, phost->device.Data, HID_Handle->length);
     joypad_ready = 1;
     return USBH_OK;
 }
