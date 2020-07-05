@@ -5,10 +5,19 @@
 
 #include <config.h>
 
-#include "usbh_def.h"
-#include "usbh_conf.h"
-#include "usbh_core.h"
-#include "usbh_hid.h"
+#if defined(USE_STM32H747I_DISCO)
+#include "h747/usbh_def.h"
+#include "h747/usbh_conf.h"
+#include "h747/usbh_core.h"
+#include "h747/usbh_hid.h"
+#elif defined(USE_STM32F769I_DISCO)
+#include "f769/usbh_def.h"
+#include "f769/usbh_conf.h"
+#include "f769/usbh_core.h"
+#include "f769/usbh_hid.h"
+#else
+#error
+#endif
 
 #include <arch.h>
 #include <bsp_api.h>
@@ -84,6 +93,7 @@ void joypad_bsp_init (void)
     USBH_Init(&hUSBHost, USBH_UserProcess, 0);
     USBH_RegisterClass(&hUSBHost, USBH_HID_CLASS);
     USBH_Start(&hUSBHost);
+    HAL_PWREx_EnableUSBVoltageDetector();
     irq_bmap(&usb_irq);
     usb_irq = usb_irq & (~temp);
     timeout += d_time();
@@ -134,19 +144,21 @@ USBH_StatusTypeDef USBH_HID_GamepadInit(USBH_HandleTypeDef *phost)
     HID_Handle->length = g_usb_data_size;
     HID_Handle->pData = (uint8_t *)g_usb_data;
 
-    fifo_init(&HID_Handle->fifo, phost->device.Data, HID_Handle->length);
+    //fifo_init(&HID_Handle->fifo, phost->device.Data, HID_Handle->length);
     joypad_ready = 1;
     return USBH_OK;
 }
 
 extern HCD_HandleTypeDef hhcd;
 
-#ifdef USE_USB_FS
-void OTG_FS_IRQHandler(void)
-#else
 void OTG_HS_IRQHandler(void)
-#endif
 {
   HAL_HCD_IRQHandler(&hhcd);
 }
+
+void OTG_FS_IRQHandler(void)
+{
+  HAL_HCD_IRQHandler(&hhcd);
+}
+
 
