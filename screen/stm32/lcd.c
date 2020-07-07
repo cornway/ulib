@@ -586,8 +586,16 @@ screen_copy_2x2_HW (screen_t *in)
 }
 
 static void
+screen_copy_2x2_8bpp_task (void *arg)
+{
+    gfx_2d_buf_pair_t *buf = (gfx_2d_buf_pair_t *)arg;
+    gfx2d_scale2x2_8bpp(&buf->dest, &buf->src);
+}
+
+static void
 screen_copy_2x2_8bpp (screen_t *in)
 {
+    int sw_render = 1;
     screen_t screen;
     gfx_2d_buf_t dest, src;
 
@@ -595,7 +603,16 @@ screen_copy_2x2_8bpp (screen_t *in)
     vid_vsync(1);
     __screen_to_gfx2d(&dest, &screen);
     __screen_to_gfx2d(&src, in);
-    gfx2d_scale2x2_8bpp(&dest, &src);
+    if (screen_hal_smp_avail()) {
+        int hsem_id = hal_smp_hsem_alloc("hsem_task");
+
+        hal_smp_hsem_spinlock(hsem_id);
+        sw_render = screen_hal_sched_task(screen_copy_2x2_8bpp_task, &dest, &src);
+        hal_smp_hsem_release(hsem_id);
+    }
+    if (sw_render) {
+        gfx2d_scale2x2_8bpp(&dest, &src);
+    }
 }
 
 static void
