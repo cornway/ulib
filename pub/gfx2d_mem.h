@@ -22,6 +22,10 @@ typedef struct {
 } gfx_2d_buf_t;
 
 typedef struct {
+    gfx_2d_buf_t dest, src;
+} gfx_2d_buf_pair_t;
+
+typedef struct {
     uint8_t lut[256][256];
 } blut8_t;
 
@@ -53,7 +57,7 @@ void gfx2d_scale2x2_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
 void gfx2d_scale3x3_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
 void gfx2d_scale2x2_8bpp_filt_Bi (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
 void gfx2d_scale2x2_8bpp_filt (blut8_t *lut, gfx_2d_buf_t *dest, gfx_2d_buf_t *src);
-void gfx2d_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d);
+void vid_direct_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d);
 
 #ifdef __cplusplus
     }

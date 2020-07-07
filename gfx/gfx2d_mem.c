@@ -10,14 +10,6 @@
 #include <gfx2d_mem.h>
 #include <lcd_main.h>
 
-void gfx2d_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d)
-{
-    screen_t dest_s, src_s;
-    __gfx2d_to_screen(&dest_s, dest2d);
-    __gfx2d_to_screen(&src_s, src2d);
-    vid_copy(&dest_s, &src_s);
-}
-
 typedef struct {
     pix8_t a[4];
 } scanline8_t;

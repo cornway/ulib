@@ -476,7 +476,7 @@ static USBH_StatusTypeDef USBH_HID_Process(USBH_HandleTypeDef *phost)
 #if !USB_HID_HACK
       HID_Handle->DataReady = 0;
 #else
-      memcpy(g_usb_data, HID_Handle->pData, g_usb_data_size);
+      USBH_memcpy(g_usb_data, HID_Handle->pData, g_usb_data_size);
       g_usb_data_ready++;
 #endif
 

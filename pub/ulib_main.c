@@ -37,22 +37,6 @@ extern void dev_hal_tickle (void);
 
 int g_dev_debug_level = DBG_ERR;
 
-#include "../../ulib/misc/inc/swtim.h"
-
-static void *led_swtim;
-void dev_led_tickle (void *unused)
-{
-    static int led_status = 0;
-
-    led_status = 1 - led_status;
-    if (led_status) {
-        status_led_on();
-    } else {
-        status_led_off();
-    }
-    swtim_timeout(led_swtim, 500);
-}
-
 #if (_USE_LFN == 3)
 #error "ff_malloc, ff_free must be redefined to Sys_HeapAlloc"
 #endif
@@ -105,7 +89,6 @@ void (*dev_deinit_callback) (void) = NULL;
 
 int bsp_drv_init (void)
 {
-    hal_tty_vcom_attach();
     heap_stat();
     cs_load_code(NULL, NULL, 0);
     dev_io_init();
@@ -153,10 +136,6 @@ int bsp_drv_main (void)
     dev_hal_init();
     bsp_drv_init();
     VID_PreConfig();
-    swtim_core_init();
-    led_swtim = swtim_init(dev_led_tickle, NULL, 0);
-    swtim_timeout(led_swtim, 500);
-    g_bspapi = bsp_api_attach();
     mainloop(argc, argv);
 
     return 0;
@@ -196,7 +175,6 @@ void __c_hard_fault (arch_word_t p0, arch_word_t p1)
 void SysTick_Handler (void)
 {
     dev_hal_tickle();
-    swtim_tick();
 }
 
 

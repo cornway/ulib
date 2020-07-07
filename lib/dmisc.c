@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <string.h>
 
 #include <arch.h>
 #include "../../common/int/bsp_cmd_int.h"
@@ -7,6 +8,7 @@
 #include <bsp_cmd.h>
 #include <misc_utils.h>
 #include <debug.h>
+#include <heap.h>
 #include <bsp_sys.h>
 
 #define TERM_MAX_CMD_BUF 256

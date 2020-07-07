@@ -22,6 +22,8 @@
 
 #include <bsp_sys.h>
 #include <bsp_cmd.h>
+#include <dev_io.h>
+#include <smp.h>
 
 static void screen_copy_1x1_SW (screen_t *in);
 static void screen_copy_1x1_HW (screen_t *in);
@@ -311,7 +313,7 @@ void vid_vsync (int mode)
 {
     profiler_enter();
     if (mode) {
-        screen_hal_layreload(lcd);
+        screen_hal_reload_layer(lcd);
     }
     screen_hal_sync(lcd, 1);
     profiler_exit();
@@ -464,6 +466,14 @@ void vid_update (screen_t *in)
         vid_scaler_handler(in);
     }
     screen_hal_post_sync(lcd);
+}
+
+void vid_direct_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d)
+{
+    screen_t dest_s, src_s;
+    __gfx2d_to_screen(&dest_s, dest2d);
+    __gfx2d_to_screen(&src_s, src2d);
+    vid_copy(&dest_s, &src_s);
 }
 
 void vid_direct (int x, int y, screen_t *s, int laynum)

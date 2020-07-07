@@ -209,10 +209,10 @@ char *d_strupr(char *str)
   return str;
 }
 
-char *d_strdup (const char *str)
+char *d_strdup (const char *str, void *(*_malloc) (size_t size))
 {
     int sz = strlen(str);
-    char *ret = (char *)heap_malloc(sz + 1);
+    char *ret = (char *)_malloc(sz);
     if (!ret) return NULL;
     strcpy(ret, str);
     ret[-0] = '\0';

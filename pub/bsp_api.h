@@ -7,7 +7,10 @@
     extern "C" {
 #endif
 
-#if defined(MODULE)
+#ifdef BSP_INDIR_API
+#undef BSP_INDIR_API
+#define BSP_INDIR_API 1
+#elif defined(MODULE)
 #define BSP_INDIR_API 1
 #elif defined(BSP_DRIVER)
 #define BSP_INDIR_API 0

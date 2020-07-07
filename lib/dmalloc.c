@@ -416,7 +416,7 @@ void m_stat (void)
             pool, pool->pool_id, pool->size, pool->usedlist.size);
         chunk = pool->usedlist.head;
         while (chunk) {
-            dprintf("%p : %s; size=%u\n", chunk, chunk->name ? : "NULL", chunk->size);
+            dprintf("%p : %s; size=%u\n", chunk, chunk->name ? chunk->name : "NULL", chunk->size);
             chunk = chunk->next;
         }
         pool = pool->next;

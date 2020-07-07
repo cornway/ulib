@@ -25,6 +25,15 @@
 
 bspapi_t *g_bspapi;
 
+static void _shared_memory (arch_word_t **base, arch_word_t *size)
+{
+    extern const char *__shared_base;
+    extern const char *__shared_limit;
+
+    *base = (arch_word_t *)&__shared_base;
+    *size = &__shared_limit - &__shared_base;
+}
+
 typedef struct {
     uint32_t size;
     uint32_t data[1];
@@ -89,13 +98,11 @@ int dev_priv_stub (int c, void *v)
 #define API_SETUP(api, module) \
 (api)->api.module = &(api)->module;
 
-bspapi_t *bsp_api_attach (void)
+bspapi_t *_bsp_api_attach (arch_word_t *ptr, arch_word_t size)
 {
-    arch_word_t *ptr, size;
     bsp_api_int_t *api;
     tlv_t *tlv;
 
-    arch_get_shared(&ptr, &size);
     assert(ptr);
     assert(size >= sizeof(*api));
 
@@ -256,24 +263,38 @@ bspapi_t *bsp_api_attach (void)
     return &api->api;
 }
 
-#else /*BSP_INDIR_API*/
-
 bspapi_t *bsp_api_attach (void)
-
 {
     arch_word_t *ptr, size;
-    bsp_api_int_t *api;
 
-    arch_get_shared(&ptr, &size);
+    _shared_memory(&ptr, &size);
+    return _bsp_api_attach(ptr, size);
+}
 
-    api = (bsp_api_int_t *)ptr;
+#else /*BSP_INDIR_API*/
 
+bspapi_t *_bsp_api_attach (arch_word_t *ptr, arch_word_t size)
+{
+    bsp_api_int_t *api = (bsp_api_int_t *)ptr;
     return &api->api;
+}
+
+bspapi_t *bsp_api_attach ()
+{
+    arch_word_t *ptr, size;
+
+    _shared_memory(&ptr, &size);
+    return _bsp_api_attach(ptr, size);
 }
 
 #define dev_hal_tickle
 
 #endif /*BSP_INDIR_API*/
+
+size_t _bsp_api_size (void)
+{
+    return sizeof(bsp_api_int_t);
+}
 
 void bsp_tickle (void)
 {
@@ -315,7 +336,7 @@ const char **bsp_argc_argv_get (int *argc)
     arch_word_t *ptr, size;
     tlv_t *tlv;
 
-    arch_get_shared(&ptr, &size);
+    _shared_memory(&ptr, &size);
 
     tlv = __get_next_tlv(ptr);
     tlv = __get_next_tlv(tlv);
@@ -386,7 +407,7 @@ void bsp_argc_argv_set (const char *arg)
     char *charptr, *tempptr;
     tlv_t *tlv;
 
-    arch_get_shared(&ptr, &maxsize);
+    _shared_memory(&ptr, &maxsize);
 
 	/* First tlv is boot API */
     tlv = __get_tlv(ptr);
