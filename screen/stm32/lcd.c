@@ -16,7 +16,6 @@
 #include <gfx2d_mem.h>
 #include <gui.h>
 #include <lcd_main.h>
-#include "../../../common/int/lcd_int.h"
 #include "../../gui/colors.h"
 #include <../../../common/int/mpu.h>
 
@@ -24,6 +23,7 @@
 #include <bsp_cmd.h>
 #include <dev_io.h>
 #include <smp.h>
+#include "../../../common/int/lcd_int.h"
 
 static void screen_copy_1x1_SW (screen_t *in);
 static void screen_copy_1x1_HW (screen_t *in);
@@ -603,16 +603,7 @@ screen_copy_2x2_8bpp (screen_t *in)
     vid_vsync(1);
     __screen_to_gfx2d(&dest, &screen);
     __screen_to_gfx2d(&src, in);
-    if (screen_hal_smp_avail()) {
-        int hsem_id = hal_smp_hsem_alloc("hsem_task");
-
-        hal_smp_hsem_spinlock(hsem_id);
-        sw_render = screen_hal_sched_task(screen_copy_2x2_8bpp_task, &dest, &src);
-        hal_smp_hsem_release(hsem_id);
-    }
-    if (sw_render) {
-        gfx2d_scale2x2_8bpp(&dest, &src);
-    }
+    gfx2d_scale2x2_8bpp(&dest, &src);
 }
 
 static void

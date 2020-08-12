@@ -17,7 +17,7 @@ typedef struct hal_smp_task_s {
     void *arg;
 } hal_smp_task_t;
 
-int hal_smp_sched_task (void (*func) (void *), void *usr, size_t usr_size);
+hal_smp_task_t *hal_smp_sched_task (void (*func) (void *), void *usr, size_t usr_size);
 hal_smp_task_t *hal_smp_next_task (void);
 void hal_smp_remove_task (hal_smp_task_t *task);
 
