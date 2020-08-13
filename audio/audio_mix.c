@@ -11,6 +11,7 @@
 #include <misc_utils.h>
 #include <heap.h>
 
+#include <heap.h>
 #include <audio_main.h>
 #include "../../common/int/audio_int.h"
 
@@ -121,10 +122,7 @@ a_write_single_to_master (snd_sample_t *dest, mixdata_t *mixdata, int compratio)
     }
 }
 
-IRAMFUNC static void
-a_mix_single_to_master (snd_sample_t *dest, mixdata_t *mixdata, int compratio);
-
-static void
+void
 a_mix_single_to_master (snd_sample_t *dest, mixdata_t *mixdata, int compratio)
 {
     int16_t *pdest = (int16_t *)dest;
@@ -255,10 +253,24 @@ void a_paint_buffer (a_channel_head_t *chanlist, a_buf_t *abuf, int compratio)
 
 #endif /*AUDIO_PLAY_SCHEME*/
 
+static int __a_paint_buf_ex (a_buf_t *abuf, mixdata_t *mixdata, int mixcnt, int compratio)
+{
+    int i, dirty = 0;
+
+    a_clear_abuf(abuf);
+    for (i = 0; i < mixcnt; i++) {
+        if (mixdata[i].size) {
+            a_mix_single_to_master(abuf->buf, &mixdata[i], compratio);
+            dirty++;
+        }
+    }
+    return dirty;
+}
+
 static void a_paint_buf_ex (a_channel_head_t *chanlist, a_buf_t *abuf, int compratio)
 {
     a_channel_t *cur, *next;
-    mixdata_t mixdata;
+    mixdata_t mixdata[arrlen(abuf->audio->pool)];
     int dirty = 0;
     int cnt = 0;
 
@@ -269,18 +281,15 @@ static void a_paint_buf_ex (a_channel_head_t *chanlist, a_buf_t *abuf, int compr
             continue;
         }
 
-        a_grab_mixdata(cur, abuf, &mixdata);
-
-        if (mixdata.size) {
-            a_mix_single_to_master(abuf->buf, &mixdata, compratio);
-            dirty++;
-        }
+        a_grab_mixdata(cur, abuf, &mixdata[cnt]);
         cnt++;
     }
 #if (USE_REVERB)
     a_rev_proc(abuf);
 #endif
-    if (dirty) {
+    if (abuf->audio->cvar_have_smp && a_paint_buf_ex_smp_task(abuf, mixdata, cnt, compratio)) {
+        *abuf->dirty = d_true;
+    } else if (__a_paint_buf_ex(abuf, mixdata, cnt, compratio)) {
         *abuf->dirty = d_true;
     }
 }

@@ -43,6 +43,7 @@ typedef struct mpool_s {
     mlist_t freelist, usedlist;
     mchunk_t *frag_start;
     void *start; void *end;
+    uint8_t *magic;
     size_t size;
     uint8_t pool_id;
 } mpool_t;
@@ -75,9 +76,9 @@ static void mpool_set_magic (mchunk_t *mchunk)
 
 int d_memcmp (uint8_t *p1, uint8_t *p2, size_t size);
 
-static int mpool_check_magic (mchunk_t *mchunk)
+static int mpool_check_magic (mpool_t *mpool, mchunk_t *mchunk)
 {
-    uint8_t *magic = dmem.magic;
+    uint8_t *magic = mpool->magic;
     int ret;
 
     ret = d_memcmp(&mchunk->data[mchunk->size - MMAGIC_SIZE - sizeof(mchunk_t)], magic, MMAGIC_SIZE);
@@ -256,7 +257,7 @@ static void *mpool_alloc_align (mpool_t *mpool, size_t size, size_t align)
 
 static void mpool_free (mpool_t *mpool,  mchunk_t *mchunk)
 {
-    int check = mpool_check_magic(mchunk);
+    int check = mpool_check_magic(mpool, mchunk);
     if (check) {
         dprintf("%s(): Corrupted memory, err %d, Dump:\n", __func__, check);
         dprintf("bottom: \n");
@@ -353,7 +354,7 @@ void *m_pool_init (void *pool, size_t size)
     dmem.last_id++;
     mpool->next = dmem.arena;
     dmem.arena = mpool;
-
+    mpool->magic = dmem.magic;
     return mpool;
 }
 

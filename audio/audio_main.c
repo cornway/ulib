@@ -91,21 +91,21 @@ void
 a_paint_buff_helper (a_buf_t *abuf)
 {
     int compratio = abuf->audio->head.size + 2;
-    d_bool mixduty = d_false;
+    d_bool dirty = d_false;
 
-    a_clear_abuf(abuf);
     if (abuf->audio->amixer_callback) {
+        a_clear_abuf(abuf);
         abuf->audio->amixer_callback(-1, abuf->buf, abuf->samples * sizeof(abuf->buf[0]), NULL);
-        mixduty = d_true;
+        dirty = d_true;
     }
     if (a_chanlist_try_reject_all(abuf->audio, &abuf->audio->head) == 0) {
-        if (!mixduty) {
+        if (!dirty) {
             a_clear_abuf(abuf);
         }
         return;
     }
-    *abuf->dirty = mixduty;
     a_paint_buffer(&abuf->audio->head, abuf, compratio);
+    *abuf->dirty |= dirty;
 }
 
 void a_paint_all (d_bool force, int *pend)

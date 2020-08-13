@@ -9,12 +9,16 @@ int hal_smp_hsem_lock (int s);
 int hal_smp_hsem_spinlock (int s);
 int hal_smp_hsem_release (int s);
 
+#define HAL_SMP_TASK_PEND (0x1)
+#define HAL_SMP_TASK_EXEC (0x2)
+
 typedef struct hal_smp_task_s {
     struct hal_smp_task_s *next;
     int id;
     void (*func) (void *arg); 
     size_t usr_size;
     void *arg;
+    uint32_t flags;
 } hal_smp_task_t;
 
 hal_smp_task_t *hal_smp_sched_task (void (*func) (void *), void *usr, size_t usr_size);
