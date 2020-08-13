@@ -12,6 +12,7 @@
 #include <bsp_cmd.h>
 #include <debug.h>
 #include <term.h>
+#include <heap.h>
 
 #include <audio_main.h>
 #include "../../common/int/audio_int.h"
@@ -25,15 +26,7 @@ extern isr_status_e g_audio_isr_status;
 extern int g_audio_isr_pend[A_ISR_MAX];
 extern d_bool g_audio_proc_isr;
 
-static a_channel_t channels[AUDIO_MUS_CHAN_START + 1/*Music channel*/];
-static a_channel_head_t chan_llist_ready;
-
-static d_bool a_force_stop        = d_false;
-static irqmask_t audio_irq_mask;
-
-static void (*a_mixer_callback) (int chan, void *stream, int len, void *udata) = NULL;
-
-static a_intcfg_t audio_config;
+audio_t *audio;
 
 void error_handle (void)
 {
@@ -43,7 +36,7 @@ void error_handle (void)
 static inline void
 a_chan_reset (a_channel_t *desc)
 {
-    memset(desc, 0, sizeof(*desc));
+    d_memset(desc, 0, sizeof(*desc));
 }
 
 static void
@@ -51,7 +44,7 @@ a_chanlist_empty_clbk (struct a_channel_head_s *head)
 {
     if (cd_playing())
         return;
-    a_force_stop = d_true;
+    audio->force_stop = d_true;
 }
 
 static void
@@ -68,13 +61,13 @@ a_chanlist_node_remove_clbk (struct a_channel_head_s *head, a_channel_t *rem)
 }
 
 static audio_channel_t *
-a_channel_insert (Mix_Chunk *chunk, int channel)
+a_channel_insert (audio_t *audio, Mix_Chunk *chunk, int channel)
 {
-    a_channel_t *desc = &channels[channel];
+    a_channel_t *desc = &audio->pool[channel];
     if (desc->inst.is_playing == 0) {
         desc->inst.is_playing = 1;
         desc->inst.chunk = *chunk;
-        a_channel_link(&chan_llist_ready, desc, 0);
+        a_channel_link(&audio->head, desc, 0);
     } else {
         error_handle();
     }
@@ -89,30 +82,30 @@ a_channel_insert (Mix_Chunk *chunk, int channel)
 }
 
 void
-a_channel_remove (a_channel_t *desc)
+a_channel_remove (audio_t *audio, a_channel_t *desc)
 {
-    a_channel_unlink(&chan_llist_ready, desc);
+    a_channel_unlink(&audio->head, desc);
 }
 
 void
 a_paint_buff_helper (a_buf_t *abuf)
 {
-    int compratio = chan_llist_ready.size + 2;
+    int compratio = abuf->audio->head.size + 2;
     d_bool mixduty = d_false;
 
     a_clear_abuf(abuf);
-    if (a_mixer_callback) {
-        a_mixer_callback(-1, abuf->buf, abuf->samples * sizeof(abuf->buf[0]), NULL);
+    if (abuf->audio->amixer_callback) {
+        abuf->audio->amixer_callback(-1, abuf->buf, abuf->samples * sizeof(abuf->buf[0]), NULL);
         mixduty = d_true;
     }
-    if (a_chanlist_try_reject_all(&chan_llist_ready) == 0) {
+    if (a_chanlist_try_reject_all(abuf->audio, &abuf->audio->head) == 0) {
         if (!mixduty) {
             a_clear_abuf(abuf);
         }
         return;
     }
     *abuf->dirty = mixduty;
-    a_paint_buffer(&chan_llist_ready, abuf, compratio);
+    a_paint_buffer(&abuf->audio->head, abuf, compratio);
 }
 
 void a_paint_all (d_bool force, int *pend)
@@ -123,6 +116,7 @@ void a_paint_all (d_bool force, int *pend)
     for (id = A_ISR_HALF; id < A_ISR_MAX; id++) {
         if (pend[id] || force) {
             a_get_master4idx(&master, bufidx);
+            master.audio = audio;
             a_paint_buff_helper(&master);
         }
         bufidx++;
@@ -181,12 +175,12 @@ a_isr_clear_all (void)
 
 void audio_update_isr (void)
 {
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
 
     irq_save(&irq_flags);
-    if (a_force_stop) {
+    if (audio->force_stop) {
         a_clear_master();
-        a_force_stop = d_false;
+        audio->force_stop = d_false;
     }
     cd_tickle();
     irq_restore(irq_flags);
@@ -194,7 +188,7 @@ void audio_update_isr (void)
 
 void audio_update_dsr (void)
 {
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
 
     irq_save(&irq_flags);
     if (g_audio_isr_status) {
@@ -203,9 +197,9 @@ void audio_update_dsr (void)
     a_isr_clear_all();
     irq_restore(irq_flags);
 
-    if (a_force_stop) {
+    if (audio->force_stop) {
         a_clear_master();
-        a_force_stop = d_false;
+        audio->force_stop = d_false;
     }
     cd_tickle();
 }
@@ -221,7 +215,7 @@ void audio_update (void)
 
 void a_dsr_hung_fuse (isr_status_e status)
 {
-    if (chan_llist_ready.size == 0) {
+    if (audio->head.size == 0) {
         return;
     }
     if ((g_audio_isr_pend[status] & 0xff) == 0xff) {
@@ -235,7 +229,7 @@ void a_dsr_hung_fuse (isr_status_e status)
 
 void audio_irq_save (irqmask_t *flags)
 {
-    *flags = audio_irq_mask;
+    *flags = audio->irq_mask;
     irq_save(flags);
 }
 
@@ -246,11 +240,15 @@ void audio_irq_restore (irqmask_t flags)
 
 int audio_init (void)
 {
-    memset(&chan_llist_ready, 0, sizeof(chan_llist_ready));
-    memset(channels, 0, sizeof(channels));
-    chan_llist_ready.empty_handle = a_chanlist_empty_clbk;
-    chan_llist_ready.first_link_handle = a_chanlist_first_node_clbk;
-    chan_llist_ready.remove_handle = a_chanlist_node_remove_clbk;
+    audio = (audio_t *)heap_malloc(sizeof(*audio));
+    assert(audio);
+
+    d_memzero(audio, sizeof(*audio));
+
+    audio->head.empty_handle = a_chanlist_empty_clbk;
+    audio->head.first_link_handle = a_chanlist_first_node_clbk;
+    audio->head.remove_handle = a_chanlist_node_remove_clbk;
+
     a_mem_init();
     cd_init();
 #if (USE_REVERB)
@@ -261,15 +259,15 @@ int audio_init (void)
 
 int audio_conf (const char *str)
 {
-    a_parse_config(&audio_config, str);
-    a_hal_configure(&audio_config);
-    audio_irq_mask = audio_config.irq;
+    a_parse_config(&audio->config, str);
+    a_hal_configure(&audio->config);
+    audio->irq_mask = audio->config.irq;
     return 0;
 }
 
 a_intcfg_t *audio_current_config (void)
 {
-    return &audio_config;
+    return &audio->config;
 }
 
 void audio_deinit (void)
@@ -280,11 +278,13 @@ void audio_deinit (void)
     /*TODO : use deinit..*/
     cd_init();
     a_mem_deinit();
+    heap_free(audio);
+    audio = NULL;
 }
 
 audio_channel_t *audio_play_channel (Mix_Chunk *chunk, int channel)
 {
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
     audio_channel_t *ch = NULL;
 
     irq_save(&irq_flags);
@@ -292,7 +292,7 @@ audio_channel_t *audio_play_channel (Mix_Chunk *chunk, int channel)
         irq_restore(irq_flags);
         return NULL;
     }
-    ch = a_channel_insert(chunk, channel);
+    ch = a_channel_insert(audio, chunk, channel);
     irq_restore(irq_flags);
     return ch;
 }
@@ -300,10 +300,10 @@ audio_channel_t *audio_play_channel (Mix_Chunk *chunk, int channel)
 void audio_stop_all (void)
 {
     a_channel_t *cur, *next;
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
     irq_save(&irq_flags);
-    a_chan_foreach_safe(&chan_llist_ready, cur, next) {
-        a_channel_remove(cur);
+    a_chan_foreach_safe(&audio->head, cur, next) {
+        a_channel_remove(audio, cur);
     }
     irq_restore(irq_flags);
     a_clear_master();
@@ -311,15 +311,15 @@ void audio_stop_all (void)
 
 void audio_mixer_ext (void (*mixer_callback) (int, void *, int, void *))
 {
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
     irq_save(&irq_flags);
-    a_mixer_callback = mixer_callback;
+    audio->amixer_callback = mixer_callback;
     irq_restore(irq_flags);
 }
 
 void audio_stop_channel (int channel)
 {
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
     irq_save(&irq_flags);
     audio_pause(channel);
     irq_restore(irq_flags);
@@ -327,15 +327,15 @@ void audio_stop_channel (int channel)
 
 void audio_pause (int channel)
 {
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
     irq_save(&irq_flags);
 
     if (!CHANNEL_NUM_VALID(channel)) {
         irq_restore(irq_flags);
         return;
     }
-    if (a_chn_play(&channels[channel])) {
-        a_channel_remove(&channels[channel]);
+    if (a_chn_play(&audio->pool[channel])) {
+        a_channel_remove(audio, &audio->pool[channel]);
     }
     irq_restore(irq_flags);
 }
@@ -348,17 +348,17 @@ int audio_is_playing (int handle)
     if (!CHANNEL_NUM_VALID(handle)) {
         return 0;
     }
-    return a_chn_play(&channels[handle]);
+    return a_chn_play(&audio->pool[handle]);
 }
 
 int audio_chk_priority (int priority)
 {
     a_channel_t *cur, *next;
     int id = 0;
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
     irq_save(&irq_flags);
 
-    a_chan_foreach_safe(&chan_llist_ready, cur, next) {
+    a_chan_foreach_safe(&audio->head, cur, next) {
 
         if (!a_chn_play(cur)) {
             irq_restore(irq_flags);
@@ -377,22 +377,22 @@ int audio_chk_priority (int priority)
 
 void audio_set_pan (int handle, int l, int r)
 {
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
     irq_save(&irq_flags);
 
     if (!CHANNEL_NUM_VALID(handle)) {
         irq_restore(irq_flags);
         return;
     }
-    if (a_chn_play(&channels[handle])) {
+    if (a_chn_play(&audio->pool[handle])) {
 #if USE_STEREO
         a_chunk_vol(&channels[handle]) = ((l + r)) & MAX_VOL;
         channels[handle].left = (uint8_t)l << 1;
         channels[handle].right = (uint8_t)r << 1;
         channels[handle].volume = a_chunk_vol(&channels[handle]);
 #else
-        a_chunk_vol(&channels[handle]) = ((l + r)) & MAX_VOL;
-        channels[handle].volume = a_chunk_vol(&channels[handle]);
+        a_chunk_vol(&audio->pool[handle]) = ((l + r)) & MAX_VOL;
+        audio->pool[handle].volume = a_chunk_vol(&audio->pool[handle]);
 #endif
     }
     irq_restore(irq_flags);
@@ -400,7 +400,7 @@ void audio_set_pan (int handle, int l, int r)
 
 void audio_sample_vol (audio_channel_t *achannel, uint8_t volume)
 {
-    irqmask_t irq_flags = audio_irq_mask;
+    irqmask_t irq_flags = audio->irq_mask;
 
     irq_save(&irq_flags);
     a_channel_t *desc = container_of(achannel, a_channel_t, inst);
@@ -418,7 +418,7 @@ void audio_deinit (void)
 
 void audio_mixer_ext (void (*mixer_callback) (int, void *, int, void *))
 {
-    a_mixer_callback = mixer_callback;
+    audio->amixer_callback = mixer_callback;
 }
 
 audio_channel_t *

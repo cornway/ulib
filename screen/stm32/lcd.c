@@ -32,13 +32,11 @@ static void screen_copy_2x2_8bpp (screen_t *in);
 static void screen_copy_2x2_8bpp_filt (screen_t *in);
 static void screen_copy_3x3_8bpp (screen_t *in);
 
-static screen_update_handler_t vid_scaler_handler = NULL;
-
 uint32_t bsp_lcd_width = (uint32_t)-1;
 uint32_t bsp_lcd_height = (uint32_t)-1;
 
 static lcd_t lcd_def_cfg;
-lcd_t *lcd = NULL;
+lcd_t *g_lcd_inst = NULL;
 
 const lcd_layers_t layer_switch[LCD_MAX_LAYER] =
 {
@@ -67,19 +65,19 @@ int vid_init (void)
     return screen_hal_init(1);
 }
 
-static void vid_mpu_release (lcd_t *cfg)
+static void vid_mpu_release (lcd_t *lcd)
 {
-    if (cfg->raw_mem) {
-        mpu_unlock((arch_word_t)cfg->raw_mem, cfg->fb_size + cfg->extmem_size);
+    if (lcd->fb.buf) {
+        mpu_unlock((arch_word_t)lcd->fb.buf, lcd->fb.bytes_total);
     }
 }
 
-static void vid_mpu_create (lcd_t *cfg, size_t *fb_size)
+static void vid_mpu_create (lcd_t *lcd, size_t *fb_size)
 {
     int i;
     const char *mpu_conf = NULL;
 
-    switch (cfg->config.cachealgo) {
+    switch (lcd->config.cachealgo) {
         case VID_CACHE_NONE:
             /*Non-cacheable*/
             mpu_conf = "-c";
@@ -95,7 +93,7 @@ static void vid_mpu_create (lcd_t *cfg, size_t *fb_size)
     }
 
     i = *fb_size;
-    if (mpu_conf && mpu_lock((arch_word_t)cfg->raw_mem, fb_size, mpu_conf) < 0) {
+    if (mpu_conf && mpu_lock((arch_word_t)lcd->fb.buf, fb_size, mpu_conf) < 0) {
         dprintf("%s() : MPU region config failed\n", __func__);
     } else if (i != *fb_size) {
 
@@ -106,25 +104,23 @@ static void vid_mpu_create (lcd_t *cfg, size_t *fb_size)
     }
 }
 
-static void vid_release (lcd_t *cfg)
+static void vid_release (lcd_t *lcd)
 {
-    if (NULL == cfg) {
+    if (NULL == lcd) {
         return;
     }
-    if (cfg->raw_mem) {
-        d_memzero(cfg->raw_mem, cfg->fb_size);
-        heap_free(cfg->raw_mem);
+    if (lcd->fb.buf) {
+        d_memzero(lcd->fb.buf, lcd->fb.bytes_total);
+        heap_free(lcd->fb.buf);
     }
-    if (cfg->extmem) {
-        d_memzero(cfg->extmem, cfg->extmem_size);
-        heap_free(cfg->extmem);
-    }
-    vid_mpu_release(cfg);
-    d_memzero(cfg, sizeof(*cfg));
+    vid_mpu_release(lcd);
+    d_memzero(lcd, sizeof(*lcd));
 }
 
 void vid_deinit (void)
 {
+    lcd_t *lcd = LCD();
+
     dprintf("%s() :\n", __func__);
     screen_hal_init(0);
     vid_release(lcd);
@@ -133,6 +129,8 @@ void vid_deinit (void)
 
 int vid_set_keying (uint32_t color, int layer)
 {
+    lcd_t *lcd = LCD();
+
     if (layer >= lcd->config.laynum || layer < 0) {
         return -1;
     }
@@ -142,17 +140,19 @@ int vid_set_keying (uint32_t color, int layer)
 
 void vid_wh (screen_t *s)
 {
+    lcd_t *lcd = LCD();
+
     if (!lcd) {
         s->width = bsp_lcd_width;
         s->height = bsp_lcd_height;
     } else {
-        s->width = lcd->w;
-        s->height = lcd->h;
+        s->width = lcd->fb.w;
+        s->height = lcd->fb.h;
     }
 }
 
 static void *
-vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *cfg,
+vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *lcd,
                        uint32_t w, uint32_t h, uint32_t pixel_deep, uint32_t layers_cnt)
 {
     const uint32_t lay_mem_align = 64;
@@ -164,7 +164,7 @@ vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *cfg,
 
     fb_size = lay_mem_size * layers_cnt;
 
-    if (cfg->raw_mem) {
+    if (lcd->fb.buf) {
         assert(0);
     }
 
@@ -178,18 +178,18 @@ vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *cfg,
     */
     d_memset(fb_mem, COLOR_WHITE, fb_size);
 
-    cfg->raw_mem = fb_mem;
-    cfg->fb_size = fb_size;
-    cfg->config.laynum = layers_cnt;
-    cfg->w = w;
-    cfg->h = h;
+    lcd->fb.buf = fb_mem;
+    lcd->fb.bytes_total = fb_size;
+    lcd->config.laynum = layers_cnt;
+    lcd->fb.w = w;
+    lcd->fb.h = h;
 
     for (i = 0; i < layers_cnt; i++) {
-        cfg->lay_mem[i] = (uint8_t *)(ROUND_UP((arch_word_t)fb_mem, lay_mem_align));
+        lcd->fb.frame[i] = (uint8_t *)(ROUND_UP((arch_word_t)fb_mem, lay_mem_align));
         fb_mem = fb_mem + lay_mem_align + (fb_size / layers_cnt);
     }
-    vid_mpu_create(cfg, &fb_size);
-    return cfg->raw_mem;
+    vid_mpu_create(lcd, &fb_size);
+    return lcd->fb.buf;
 }
 
 void vid_ptr_align (int *x, int *y)
@@ -198,6 +198,7 @@ void vid_ptr_align (int *x, int *y)
 
 static screen_update_handler_t vid_get_scaler (int scale, uint8_t colormode)
 {
+    lcd_t *lcd = LCD();
     screen_update_handler_t h = NULL;
     screen_conf_t *conf = &lcd->config;
 
@@ -275,29 +276,30 @@ static int vid_set_win_size (int screen_w, int screen_h, int lcd_w, int lcd_h, i
 
 int vid_config (screen_conf_t *conf)
 {
+    lcd_t *lcd = LCD();
+
     uint32_t scale;
     int x, y, w, h;
-    lcd_t *cfg;
 
-    cfg = vid_new_winconfig(lcd);
-    if ((lcd_t *)cfg == lcd) {
+    lcd = vid_new_winconfig(lcd);
+    if ((lcd_t *)lcd == g_lcd_inst) {
         return 0;
     }
-    lcd = cfg;
+    g_lcd_inst = lcd;
     lcd->config = *conf;
     scale = vid_set_win_size(conf->res_x, conf->res_y, bsp_lcd_width, bsp_lcd_height, &x, &y, &w, &h);
 
-    vid_scaler_handler = vid_get_scaler(scale, conf->colormode);
+    lcd->scaler = vid_get_scaler(scale, conf->colormode);
 
     lcd_x_size_var = w;
     lcd_y_size_var = h;
 
     assert(screen_mode2pixdeep[conf->colormode]);
-    if (!vid_create_framebuffer(&conf->alloc, cfg, w, h, screen_mode2pixdeep[conf->colormode], conf->laynum)) {
+    if (!vid_create_framebuffer(&conf->alloc, lcd, w, h, screen_mode2pixdeep[conf->colormode], conf->laynum)) {
         return -1;
     }
 
-    if (screen_hal_set_config(cfg, x, y, w, h, conf->colormode)) {
+    if (screen_hal_set_config(lcd, x, y, w, h, conf->colormode)) {
         return 0;
     }
     return -1;
@@ -305,12 +307,16 @@ int vid_config (screen_conf_t *conf)
 
 uint32_t vid_mem_avail (void)
 {
+    lcd_t *lcd = LCD();
+
     assert(lcd);
-    return ((lcd->fb_size) / 1024);
+    return lcd->fb.bytes_total;
 }
 
 void vid_vsync (int mode)
 {
+    lcd_t *lcd = LCD();
+
     profiler_enter();
     if (mode) {
         screen_hal_reload_layer(lcd);
@@ -321,9 +327,11 @@ void vid_vsync (int mode)
 
 void vid_get_screen (screen_t *screen, int laynum)
 {
-    screen->width = lcd->w;
-    screen->height = lcd->h;
-    screen->buf = (void *)lcd->lay_mem[laynum];
+    lcd_t *lcd = LCD();
+
+    screen->width = lcd->fb.w;
+    screen->height = lcd->fb.h;
+    screen->buf = (void *)lcd->fb.frame[laynum];
     screen->x = 0;
     screen->y = 0;
     screen->colormode = lcd->config.colormode;
@@ -332,7 +340,9 @@ void vid_get_screen (screen_t *screen, int laynum)
 
 void vid_get_ready_screen (screen_t *screen)
 {
-    vid_get_screen(screen, lcd->ready_lay_idx);
+    lcd_t *lcd = LCD();
+
+    vid_get_screen(screen, lcd->fb.rd_idx);
 }
 
 static int
@@ -433,6 +443,7 @@ static void vid_gen_blut8 (lcd_t *cfg, void *palette, int numentries)
 void vid_set_clut (void *palette, uint32_t clut_num_entries)
 {
     int layer = 0;
+    lcd_t *lcd = LCD();
 
     assert(lcd);
     screen_hal_sync(lcd, 1);
@@ -442,28 +453,30 @@ void vid_set_clut (void *palette, uint32_t clut_num_entries)
     screen_hal_set_clut (lcd, palette, clut_num_entries, layer);
 }
 
-static void vid_setup_filter (void)
+static void vid_setup_filter (lcd_t *lcd)
 {
-    if (vid_scaler_handler == screen_copy_2x2_8bpp &&
+    if (lcd->scaler == screen_copy_2x2_8bpp &&
         vid_gfx_filter_scale) {
 
-        vid_scaler_handler = screen_copy_2x2_8bpp_filt;
-    } else if (vid_scaler_handler == screen_copy_2x2_8bpp_filt &&
+        lcd->scaler = screen_copy_2x2_8bpp_filt;
+    } else if (lcd->scaler == screen_copy_2x2_8bpp_filt &&
         !vid_gfx_filter_scale) {
 
-        vid_scaler_handler = screen_copy_2x2_8bpp;
+        lcd->scaler = screen_copy_2x2_8bpp;
     }
 }
 
 void vid_update (screen_t *in)
 {
+    lcd_t *lcd = LCD();
+
     if (in == NULL) {
         vid_vsync(1);
     } else {
         in->colormode = lcd->config.colormode;
         in->alpha = 0xff;
-        vid_setup_filter();
-        vid_scaler_handler(in);
+        vid_setup_filter(lcd);
+        lcd->scaler(in);
     }
     screen_hal_post_sync(lcd);
 }
@@ -478,6 +491,7 @@ void vid_direct_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d)
 
 void vid_direct (int x, int y, screen_t *s, int laynum)
 {
+    lcd_t *lcd = LCD();
     screen_t screen;
 
     vid_vsync(1);
@@ -498,20 +512,23 @@ void vid_direct (int x, int y, screen_t *s, int laynum)
 
 void vid_print_info (void)
 {
+    lcd_t *lcd = LCD();
+
     assert(lcd);
 
     dprintf("\n");
     dprintf("Video+ :\n");
-    dprintf("width=%4.3u height=%4.3u\n", lcd->w, lcd->h);
+    dprintf("width=%4.3u height=%4.3u\n", lcd->fb.w, lcd->fb.h);
     dprintf("layers = %u, color mode = %s \n",
              lcd->config.laynum, screen_mode2txt_map[lcd->config.colormode]);
-    dprintf("framebuffer = <0x%p> 0x%08x bytes\n", lcd->raw_mem, lcd->fb_size);
+    dprintf("framebuffer = <0x%p> 0x%08x bytes\n", lcd->fb.buf, lcd->fb.bytes_total);
     dprintf("Video-\n");
 }
 
 static int
 vid_copy_HW (screen_t *dest, screen_t *src)
 {
+    lcd_t *lcd = LCD();
     copybuf_t copybuf = {NULL, *dest, *src};
     uint8_t colormode = lcd->config.colormode;
 
@@ -527,11 +544,13 @@ int vid_copy (screen_t *dest, screen_t *src)
 
 int vid_copy_line_8b (void *dest, void *src, int w)
 {
+    lcd_t *lcd = LCD();
     return screen_gfx8_copy_line(lcd, dest, src, w);
 }
 
 int vid_gfx2d_direct (int x, int y, gfx_2d_buf_t *src, int laynum)
 {
+    lcd_t *lcd = LCD();
     gfx_2d_buf_t dest;
     screen_t screen;
 
@@ -557,6 +576,8 @@ screen_copy_1x1_SW (screen_t *in)
 static void
 screen_copy_1x1_HW (screen_t *in)
 {
+    lcd_t *lcd = LCD();
+
     screen_t screen;
     copybuf_t copybuf = {NULL};
 
@@ -571,6 +592,7 @@ screen_copy_1x1_HW (screen_t *in)
 static void
 screen_copy_2x2_HW (screen_t *in)
 {
+    lcd_t *lcd = LCD();
     screen_t screen;
     copybuf_t copybuf;
 
@@ -588,6 +610,7 @@ screen_copy_2x2_HW (screen_t *in)
 static void
 screen_copy_2x2_8bpp_task (void *arg)
 {
+    lcd_t *lcd = LCD();
     gfx_2d_buf_pair_t *buf = (gfx_2d_buf_pair_t *)arg;
     gfx2d_scale2x2_8bpp(&buf->dest, &buf->src);
 }
@@ -595,6 +618,7 @@ screen_copy_2x2_8bpp_task (void *arg)
 static void
 screen_copy_2x2_8bpp (screen_t *in)
 {
+    lcd_t *lcd = LCD();
     int sw_render = 1;
     screen_t screen;
     gfx_2d_buf_t dest, src;
@@ -609,6 +633,7 @@ screen_copy_2x2_8bpp (screen_t *in)
 static void
 screen_copy_2x2_8bpp_filt (screen_t *in)
 {
+    lcd_t *lcd = LCD();
     screen_t screen;
     gfx_2d_buf_t dest, src;
 
@@ -644,6 +669,8 @@ screen_copy_3x3_8bpp(screen_t *in)
 
 int vid_priv_ctl (int c, void *v)
 {
+    lcd_t *lcd = LCD();
+
     switch (c) {
         case LCD_PRIV_GET_TRANSP_LUT:
             if (lcd->blut) {

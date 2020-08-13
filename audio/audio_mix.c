@@ -313,7 +313,7 @@ a_grab_mixdata (a_channel_t *channel, a_buf_t *track, mixdata_t *mixdata)
 }
 
 static inline uint8_t
-a_chan_try_reject (a_channel_t *desc)
+a_chan_try_reject (audio_t *audio, a_channel_t *desc)
 {
     void **cache = a_chunk_cache(desc);
 
@@ -348,16 +348,16 @@ a_chan_try_reject (a_channel_t *desc)
 
     return 0;
 remove :
-    a_channel_remove(desc);
+    a_channel_remove(audio, desc);
     return 1;
 }
 
-uint8_t a_chanlist_try_reject_all (a_channel_head_t *chanlist)
+uint8_t a_chanlist_try_reject_all (audio_t *audio, a_channel_head_t *chanlist)
 {
     a_channel_t *cur, *next;
     a_chan_foreach_safe(chanlist, cur, next) {
         if (a_chn_play(cur)) {
-            a_chan_try_reject(cur);
+            a_chan_try_reject(audio, cur);
         }
     }
     return chanlist->size;
