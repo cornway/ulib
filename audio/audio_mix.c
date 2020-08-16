@@ -19,7 +19,7 @@
 #define GAIN(x, vol, comp) (((int16_t)x * vol) / comp)
 #define GAIN_FLOAT(x, vol) (int16_t)((float)(x) * (float)vol)
 
-static void a_paint_buf_ex (a_channel_head_t *chanlist, a_buf_t *abuf, int compratio);
+static void a_paint_buf_ex (audio_t *audio, a_buf_t *abuf, int compratio);
 
 #if USE_REVERB
 
@@ -72,23 +72,23 @@ static void a_rev_proc (a_buf_t *abuf)
 {
     int i = 0;
     snd_sample_t s, *buf = abuf->buf;
-    int durty = 0;
+    int dirty = 0;
 
     for (i = 0; i < abuf->samples; i++) {
         s = a_rev_pop();
         if (s) {
             buf[i] = buf[i] / 2 + s / 2;
-            durty++;
+            dirty++;
         }
         a_rev_push(buf[i]);
         s = a_rev2_pop();
         if (s) {
             buf[i] = buf[i] / 2 + s / 2;
-            durty++;
+            dirty++;
         }
         a_rev2_push(buf[i]);
     }
-    if (durty) {
+    if (dirty) {
         *abuf->dirty = true;
     }
 }
@@ -122,7 +122,7 @@ a_write_single_to_master (snd_sample_t *dest, mixdata_t *mixdata, int compratio)
     }
 }
 
-void
+IRAMFUNC void
 a_mix_single_to_master (snd_sample_t *dest, mixdata_t *mixdata, int compratio)
 {
     int16_t *pdest = (int16_t *)dest;
@@ -226,55 +226,54 @@ a_grab_mixdata_all (a_channel_head_t *chanlist, a_buf_t *track, mixdata_t *mixda
     }
 }
 
-void a_paint_buffer (a_channel_head_t *chanlist, a_buf_t *track, int compratio)
+void a_paint_buffer (audio_t *audio, a_buf_t *track, int compratio)
 {
     snd_sample_t *dest = track->buf;
     mixdata_t mixdata[AUDIO_MUS_CHAN_START + 1];
 
     /*TODO : fix this*/
-    if (chanlist->size) {
+    if (audio->head.size) {
 
-        if (chanlist->first->loopsize < track->samples) {
-            a_paint_buf_ex(chanlist, track, compratio);
+        if (audio->head.first->loopsize < track->samples) {
+            a_paint_buf_ex(audio, track, compratio);
         }
 
-        a_grab_mixdata_all(chanlist, track, mixdata);
+        a_grab_mixdata_all(&audio->head, track, mixdata);
 
-        chunk_proc_raw_all(dest, mixdata, chanlist->size, compratio);
+        chunk_proc_raw_all(dest, mixdata, audio->head.size, compratio);
     }
 }
 
 #else /*AUDIO_PLAY_SCHEME != 1*/
 
-void a_paint_buffer (a_channel_head_t *chanlist, a_buf_t *abuf, int compratio)
+void a_paint_buffer (audio_t *audio, a_buf_t *abuf, int compratio)
 {
-    a_paint_buf_ex(chanlist, abuf, compratio);
+    a_paint_buf_ex(audio, abuf, compratio);
 }
 
 #endif /*AUDIO_PLAY_SCHEME*/
 
-static int __a_paint_buf_ex (a_buf_t *abuf, mixdata_t *mixdata, int mixcnt, int compratio)
+static void __a_paint_buf_ex (a_buf_t *abuf, mixdata_t *mixdata, int mixcnt, int compratio)
 {
-    int i, dirty = 0;
+    int i;
 
     a_clear_abuf(abuf);
     for (i = 0; i < mixcnt; i++) {
         if (mixdata[i].size) {
             a_mix_single_to_master(abuf->buf, &mixdata[i], compratio);
-            dirty++;
         }
     }
-    return dirty;
+    *abuf->dirty = d_true;
 }
 
-static void a_paint_buf_ex (a_channel_head_t *chanlist, a_buf_t *abuf, int compratio)
+static void a_paint_buf_ex (audio_t *audio, a_buf_t *abuf, int compratio)
 {
     a_channel_t *cur, *next;
-    mixdata_t mixdata[arrlen(abuf->audio->pool)];
+    mixdata_t mixdata[arrlen(audio->pool)];
     int dirty = 0;
     int cnt = 0;
 
-    a_chan_foreach_safe(chanlist, cur, next) {
+    a_chan_foreach_safe(&audio->head, cur, next) {
         if (a_chn_cplt(cur) && a_chn_cplt(cur)((uint8_t *)a_chunk_data(cur), a_chunk_len(cur) * sizeof(snd_sample_t), A_HALF)) {
             dirty++;
             cnt++;
@@ -287,10 +286,12 @@ static void a_paint_buf_ex (a_channel_head_t *chanlist, a_buf_t *abuf, int compr
 #if (USE_REVERB)
     a_rev_proc(abuf);
 #endif
-    if (abuf->audio->cvar_have_smp && a_paint_buf_ex_smp_task(abuf, mixdata, cnt, compratio)) {
-        *abuf->dirty = d_true;
-    } else if (__a_paint_buf_ex(abuf, mixdata, cnt, compratio)) {
-        *abuf->dirty = d_true;
+    if (cnt) {
+        if (audio->cvar_have_smp) {
+            a_paint_buf_ex_smp_task(abuf, mixdata, cnt, compratio);
+        } else {
+            __a_paint_buf_ex(abuf, mixdata, cnt, compratio);
+        }
     }
 }
 

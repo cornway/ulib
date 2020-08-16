@@ -144,10 +144,10 @@ a_get_master4idx (a_buf_t *master, int idx)
     master->dirty = &master_track[idx].dirty;
 }
 
-void a_clear_abuf (a_buf_t *abuf)
+IRAMFUNC void a_clear_abuf (a_buf_t *abuf)
 {
     uint64_t *p_buf = (uint64_t *)abuf->buf;
-    if (*abuf->dirty == d_false)
+    if (0 && *abuf->dirty == d_false)
         return;
 
     for (int i = 0; i < AUDIO_SAMPLES_2_DWORDS(abuf->samples); i++) {

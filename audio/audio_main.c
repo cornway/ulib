@@ -88,27 +88,27 @@ a_channel_remove (audio_t *audio, a_channel_t *desc)
 }
 
 void
-a_paint_buff_helper (a_buf_t *abuf)
+a_paint_buff_helper (audio_t *audio, a_buf_t *abuf)
 {
-    int compratio = abuf->audio->head.size + 2;
+    int compratio = audio->head.size + 2;
     d_bool dirty = d_false;
 
-    if (abuf->audio->amixer_callback) {
+    if (audio->amixer_callback) {
         a_clear_abuf(abuf);
-        abuf->audio->amixer_callback(-1, abuf->buf, abuf->samples * sizeof(abuf->buf[0]), NULL);
+        audio->amixer_callback(-1, abuf->buf, abuf->samples * sizeof(abuf->buf[0]), NULL);
         dirty = d_true;
     }
-    if (a_chanlist_try_reject_all(abuf->audio, &abuf->audio->head) == 0) {
+    if (a_chanlist_try_reject_all(audio, &audio->head) == 0) {
         if (!dirty) {
             a_clear_abuf(abuf);
         }
         return;
     }
-    a_paint_buffer(&abuf->audio->head, abuf, compratio);
+    a_paint_buffer(audio, abuf, compratio);
     *abuf->dirty |= dirty;
 }
 
-void a_paint_all (d_bool force, int *pend)
+void a_paint_all (audio_t *audio, d_bool force, int *pend)
 {
     a_buf_t master;
     int id, bufidx = 0;
@@ -116,8 +116,7 @@ void a_paint_all (d_bool force, int *pend)
     for (id = A_ISR_HALF; id < A_ISR_MAX; id++) {
         if (pend[id] || force) {
             a_get_master4idx(&master, bufidx);
-            master.audio = audio;
-            a_paint_buff_helper(&master);
+            a_paint_buff_helper(audio, &master);
         }
         bufidx++;
     }
@@ -173,7 +172,7 @@ a_isr_clear_all (void)
     g_audio_isr_pend[A_ISR_COMP] = 0;
 }
 
-void audio_update_isr (void)
+void audio_update_isr (audio_t *audio)
 {
     irqmask_t irq_flags = audio->irq_mask;
 
@@ -186,13 +185,13 @@ void audio_update_isr (void)
     irq_restore(irq_flags);
 }
 
-void audio_update_dsr (void)
+static void audio_update_dsr (audio_t *audio)
 {
     irqmask_t irq_flags = audio->irq_mask;
 
     irq_save(&irq_flags);
     if (g_audio_isr_status) {
-        a_paint_all(d_false, g_audio_isr_pend);
+        a_paint_all(audio, d_false, g_audio_isr_pend);
     }
     a_isr_clear_all();
     irq_restore(irq_flags);
@@ -207,13 +206,13 @@ void audio_update_dsr (void)
 void audio_update (void)
 {
     if (g_audio_proc_isr) {
-        audio_update_isr();
+        audio_update_isr(audio);
     } else {
-        audio_update_dsr();
+        audio_update_dsr(audio);
     }
 }
 
-void a_dsr_hung_fuse (isr_status_e status)
+void a_dsr_hung_fuse (audio_t *audio, isr_status_e status)
 {
     if (audio->head.size == 0) {
         return;
@@ -260,8 +259,7 @@ int audio_init (void)
 int audio_conf (const char *str)
 {
     a_parse_config(&audio->config, str);
-    a_hal_configure(&audio->config);
-    audio->irq_mask = audio->config.irq;
+    a_hal_configure(audio);
     return 0;
 }
 
