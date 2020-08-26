@@ -25,6 +25,13 @@
 
 bspapi_t *g_bspapi;
 
+void UserExceptionH (void *stack)
+{
+    uint32_t *frame = (uint32_t *)stack;
+    dprintf("Stack <%p> : 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
+            frame, frame[0], frame[1], frame[2], frame[3], frame[4], frame[5]);
+}
+
 static void _shared_memory (arch_word_t **base, arch_word_t *size)
 {
     extern const char *__shared_base;

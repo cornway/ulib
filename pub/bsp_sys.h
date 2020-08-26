@@ -1,6 +1,10 @@
 #ifndef __BSP_SYS_H__
 #define __BSP_SYS_H__
 
+#include <arch.h>
+#include <bsp_api.h>
+#include <heap.h>
+
 typedef struct {
     bsp_heap_api_t heap;
 } bsp_user_api_t;

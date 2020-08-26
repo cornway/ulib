@@ -5,6 +5,11 @@
     extern "C" {
 #endif
 
+#include <stdint.h>
+#include <stddef.h>
+#include <stdarg.h>
+#include <bsp_api.h>
+
 #define DSEEK_SET 0
 #define DSEEK_CUR 1
 #define DSEEK_END 2

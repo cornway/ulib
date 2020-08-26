@@ -5,6 +5,9 @@
     extern "C" {
 #endif
 
+#include <nvic.h>
+#include <bsp_api.h>
+
 #define AUDIO_SIZE_TO_MS(rate, size) (((long long)(size) * 1000) / (rate))
 #define AUDIO_MS_TO_SIZE(rate, ms) (((((rate) << 2) / 1000) * (ms)) >> 2)
 

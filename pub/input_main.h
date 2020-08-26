@@ -5,6 +5,9 @@
     extern "C" {
 #endif
 
+#include <bsp_api.h>
+#include <misc_utils.h>
+
 #define GAMEPAD_USE_FLYLOOK 1
 
 typedef enum

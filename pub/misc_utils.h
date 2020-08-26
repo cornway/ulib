@@ -5,6 +5,8 @@
     extern "C" {
 #endif
 
+#include <stdint.h>
+#include <arch.h>
 enum {
     DBG_OFF,
     DBG_ERR,

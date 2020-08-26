@@ -5,6 +5,8 @@
     extern "C" {
 #endif
 
+#include <stdint.h>
+
 #if (NVIC_IRQ_MAX > 32)
 #error "uint32_t -> uint64_t"
 #else

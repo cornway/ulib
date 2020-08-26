@@ -5,6 +5,8 @@
     extern "C" {
 #endif
 
+#include <stdint.h>
+
 #define ALIGN(x) __attribute__((aligned(x)))
 
 #if defined(HAVE_CODESWAP)
