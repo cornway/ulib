@@ -124,7 +124,7 @@ void vid_deinit (void)
     dprintf("%s() :\n", __func__);
     screen_hal_init(0);
     vid_release(lcd);
-    lcd = NULL;
+    g_lcd_inst = NULL;
 }
 
 int vid_set_keying (uint32_t color, int layer)

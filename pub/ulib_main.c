@@ -136,6 +136,7 @@ int bsp_drv_main (void)
     dev_hal_init();
     bsp_drv_init();
     VID_PreConfig();
+    bsp_api_attach();
     mainloop(argc, argv);
 
     return 0;

@@ -106,7 +106,7 @@ bspapi_t *_bsp_api_attach (arch_word_t *ptr, arch_word_t size)
     assert(ptr);
     assert(size >= sizeof(*api));
 
-    memset(ptr, 0, size);
+    d_memset(ptr, 0, size);
 
     api = (bsp_api_int_t *)ptr;
     tlv = (tlv_t *)ptr;
@@ -263,14 +263,6 @@ bspapi_t *_bsp_api_attach (arch_word_t *ptr, arch_word_t size)
     return &api->api;
 }
 
-bspapi_t *bsp_api_attach (void)
-{
-    arch_word_t *ptr, size;
-
-    _shared_memory(&ptr, &size);
-    return _bsp_api_attach(ptr, size);
-}
-
 #else /*BSP_INDIR_API*/
 
 bspapi_t *_bsp_api_attach (arch_word_t *ptr, arch_word_t size)
@@ -279,17 +271,17 @@ bspapi_t *_bsp_api_attach (arch_word_t *ptr, arch_word_t size)
     return &api->api;
 }
 
-bspapi_t *bsp_api_attach ()
+#define dev_hal_tickle
+
+#endif /*BSP_INDIR_API*/
+
+bspapi_t *bsp_api_attach (void)
 {
     arch_word_t *ptr, size;
 
     _shared_memory(&ptr, &size);
     return _bsp_api_attach(ptr, size);
 }
-
-#define dev_hal_tickle
-
-#endif /*BSP_INDIR_API*/
 
 size_t _bsp_api_size (void)
 {
@@ -387,7 +379,7 @@ int bsp_argc_argv_check (const char *arg)
         return -1;
     }
     for (i = 0; i < argc; i++) {
-        if (strcmp(__argv[i], argv[i])) {
+        if (d_strcmp(__argv[i], argv[i])) {
             fails++;
             dprintf("mismatch : \'%s\' != \'%s\'\n", __argv[i], argv[i]);
         }
@@ -422,7 +414,7 @@ void bsp_argc_argv_set (const char *arg)
 
     tlv = __set_next_tlv(tlv, size);
 
-    dprintf("user args : [%s], size : <%u>\n", (char *)charptr, tlv->size);
+    dprintf("user args : [%s], size : <%u>\n", (char *)charptr, size);
 
     size = MAX_ARGC * sizeof(char *) + sizeof(uint32_t) + sizeof(uint32_t);
     maxsize -= size;

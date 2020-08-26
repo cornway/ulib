@@ -1,6 +1,7 @@
 #ifndef __SMP_H__
 #define __SMP_H__
 
+int hal_smp_present (void);
 int hal_smp_init (int core_id);
 int hal_smp_deinit (void);
 int hal_smp_hsem_alloc (const char *name);

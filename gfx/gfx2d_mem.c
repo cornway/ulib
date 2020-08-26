@@ -73,7 +73,7 @@ __gfx2d_scale2x2_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
     }
 }
 
-void
+IRAMFUNC void
 gfx2d_scale2x2_8bpp (gfx_2d_buf_t *dest, gfx_2d_buf_t *src)
 {
     if (cs_check_symb((void *)__gfx2d_scale2x2_8bpp)) {

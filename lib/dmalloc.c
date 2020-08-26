@@ -18,7 +18,6 @@
 #define MPOISON_USE_AFTER_FREE (0x6b)
 #define MALLIGN (sizeof(arch_word_t))
 #define MPROTECT_SIZE (MALLIGN)
-#define MMAGIC_SIZE (MGAP)
 
 struct mpool_s;
 struct mlist_s;
@@ -51,7 +50,7 @@ typedef struct mpool_s {
 typedef struct {
     mpool_t *arena;
     int last_id;
-    uint8_t magic[MMAGIC_SIZE + MPROTECT_SIZE];
+    uint8_t magic[MPROTECT_SIZE];
 } dmem_t;
 
 A_COMPILE_TIME_ASSERT(memory_allign, (sizeof(mchunk_t) % MALLIGN) == 0);
@@ -71,7 +70,6 @@ static void __mpoison (void *dst, size_t size)
 static void mpool_set_magic (mchunk_t *mchunk)
 {
     d_memset(&mchunk->protect[0], MPROTECT, arrlen(mchunk->protect));
-    d_memset(&mchunk->data[mchunk->size - MMAGIC_SIZE - sizeof(mchunk_t)], MMAGIC, MMAGIC_SIZE);
 }
 
 int d_memcmp (uint8_t *p1, uint8_t *p2, size_t size);
@@ -79,17 +77,16 @@ int d_memcmp (uint8_t *p1, uint8_t *p2, size_t size);
 static int mpool_check_magic (mpool_t *mpool, mchunk_t *mchunk)
 {
     uint8_t *magic = mpool->magic;
-    int ret;
-
-    ret = d_memcmp(&mchunk->data[mchunk->size - MMAGIC_SIZE - sizeof(mchunk_t)], magic, MMAGIC_SIZE);
-    ret += d_memcmp(&mchunk->protect[0], magic + MMAGIC_SIZE, MPROTECT_SIZE);
-
-    return ret;
+    return d_memcmp(&mchunk->protect[0], magic, arrlen(mchunk->protect));
 }
 
 static mchunk_t *mchunk_init (mchunk_t *mchunk, size_t size)
 {
-    d_memset(mchunk, 0, sizeof(mchunk_t));
+    mchunk->data = NULL;
+    mchunk->mlist = NULL;
+    mchunk->name = NULL;
+    mchunk->next = NULL;
+    mchunk->next_frag = NULL;
     mchunk->size = size;
     return mchunk;
 }
@@ -134,16 +131,18 @@ static inline mchunk_t *__mchunk_alloc_ptr (mchunk_t *chunk, size_t off)
 
 static mchunk_t *__mchunk_new_fragment (mchunk_t *chunk, size_t size)
 {
-    const size_t newsize = chunk->size - size;
-    mchunk_t *newchunk = __mchunk_alloc_ptr(chunk, newsize);
+    chunk->size = chunk->size - size;
+    mchunk_t *newchunk = __mchunk_alloc_ptr(chunk, chunk->size);
 
-    chunk->size = newsize;
-    chunk->mlist->size -= size;
+    if (chunk->mlist) {
+        chunk->mlist->size -= size;
+    }
 
-    newchunk->next_frag = chunk->next_frag;
+    newchunk = mchunk_init(newchunk, size);
+
     chunk->next_frag = newchunk;
-
-    return mchunk_init(newchunk, size);
+    newchunk->next_frag = NULL;
+    return newchunk;
 }
 
 static inline void mchunk_concat (mchunk_t *chunk, mchunk_t *next_chunk)
@@ -153,29 +152,22 @@ static inline void mchunk_concat (mchunk_t *chunk, mchunk_t *next_chunk)
     next_chunk->next_frag = NULL;
 }
 
-static mchunk_t *mlist_defrag (mlist_t *mlist, mchunk_t *chunk)
-{
-    mchunk_t *frag = chunk->next_frag, *next_frag;
-
-    while (frag && (frag->mlist == mlist)) {
-
-        next_frag = frag->next_frag;
-
-        mchunk_concat(chunk, frag);
-        mlist->size += frag->size;
-        __mchunk_unlink(mlist, frag);
-
-        frag = next_frag;
-    }
-    return chunk->next;
-}
-
 static void mlist_defrag_all (mlist_t *mlist)
 {
-    mchunk_t *chunk = mlist->head;
+    mchunk_t *frag = mlist->head, *next_frag = mlist->head->next_frag, *tmp_frag;
 
-    while (mlist->cnt && chunk) {
-        chunk = mlist_defrag(mlist, chunk);
+    while (next_frag) {
+
+        tmp_frag = next_frag->next_frag;
+
+        if (frag->mlist == mlist && next_frag->mlist == mlist) {
+            mchunk_concat(frag, next_frag);
+            __mchunk_unlink(mlist, next_frag);
+        } else {
+            frag = next_frag;
+        }
+
+        next_frag = tmp_frag;
     }
 }
 
@@ -216,42 +208,43 @@ static void *mpool_alloc (mpool_t *mpool, size_t size, const char *caller_name)
 
 static void *mpool_alloc_align (mpool_t *mpool, size_t size, size_t align)
 {
-    const size_t memsize = ROUND_UP((size + sizeof(mchunk_t) + MGAP), MALLIGN) + align;
+    const size_t memsize = ROUND_UP((size + sizeof(mchunk_t) + MGAP + align), MALLIGN);
     size_t offset = 0, pad;
-    mchunk_t *chunk, *chunk_aligned;
+    mchunk_t *chunk, *chunk_before, *chunk_after;
 
     if (mpool->freelist.size < memsize) {
         return NULL;
     }
 
-    chunk = mpool_best_fit(mpool->freelist.head, memsize);
-    if (!chunk) {
+    chunk_before = mpool_best_fit(mpool->freelist.head, memsize);
+    if (!chunk_before) {
         return NULL;
     }
-    if (chunk->size >= MMINSZ + memsize) {
+    if (chunk_before->size >= MMINSZ + memsize) {
         if (!mpool->frag_start) {
-            mpool->frag_start = chunk;
+            mpool->frag_start = chunk_before;
         }
-        chunk = __mchunk_new_fragment(chunk, memsize);
+        chunk_before = __mchunk_new_fragment(chunk_before, memsize);
     } else {
-        __mchunk_unlink(&mpool->freelist, chunk);
+        __mchunk_unlink(&mpool->freelist, chunk_before);
     }
 
-    pad = GET_PAD((arch_word_t)chunk, align);
+    pad = GET_PAD((arch_word_t)chunk_before, align);
     while (pad < sizeof(mchunk_t)) {
         pad += align;
     }
-    offset = pad - sizeof(mchunk_t) + sizeof(arch_word_t);
+    offset = pad - sizeof(mchunk_t);
 
-    chunk_aligned = __mchunk_new_fragment(chunk, offset);
-    __mchunk_link(&mpool->freelist, chunk);
-    chunk = __mchunk_new_fragment(chunk_aligned, size);
-    __mchunk_link(&mpool->freelist, chunk);
-    __mchunk_link(&mpool->usedlist, chunk_aligned);
+    chunk = __mchunk_new_fragment(chunk_before, memsize - offset);
+    chunk_after = __mchunk_new_fragment(chunk, size);
 
+    __mchunk_link(&mpool->freelist, chunk_before);
+    __mchunk_link(&mpool->freelist, chunk_after);
+    __mchunk_link(&mpool->usedlist, chunk);
+
+    chunk->data = (uint8_t *)(chunk + 1);
     mpool_set_magic(chunk);
-    chunk_aligned->data = (uint8_t *)(chunk_aligned + 1);
-    return chunk_aligned->data;
+    return chunk->data;
 }
 
 
@@ -260,11 +253,8 @@ static void mpool_free (mpool_t *mpool,  mchunk_t *mchunk)
     int check = mpool_check_magic(mpool, mchunk);
     if (check) {
         dprintf("%s(): Corrupted memory, err %d, Dump:\n", __func__, check);
-        dprintf("bottom: \n");
+        dprintf("red zone: \n");
         hexdump(mchunk->protect, 8, MPROTECT_SIZE, 4);
-        dprintf("top: \n");
-        hexdump(&mchunk->data[mchunk->size - sizeof(mchunk_t) - MMAGIC_SIZE], 8, MMAGIC_SIZE, 4);
-        dprintf("***\n");
         assert(0);
     }
     __mpoison(mchunk->data, mchunk->size - sizeof(mchunk_t));
@@ -363,8 +353,7 @@ void m_init (void)
     dmem.last_id = 0;
     dmem.arena = NULL;
 
-    d_memset(dmem.magic, MMAGIC, MMAGIC_SIZE);
-    d_memset(dmem.magic + MMAGIC_SIZE, MPROTECT, MPROTECT_SIZE);
+    d_memset(dmem.magic, MPROTECT, MPROTECT_SIZE);
 }
 
 void *m_malloc (void *pool, uint32_t size, const char *caller_name)
