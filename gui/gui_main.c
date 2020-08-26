@@ -457,7 +457,6 @@ static int gui_pane_draw (gui_t *gui, pane_t *pane)
     if (pane->child) {
         repaint = gui_pane_draw(gui, pane->child);
     }
-    vid_vsync(0);
     while (com) {
         if (gui_is_com_durty(gui, com)) {
             gui_com_draw(pane, com);

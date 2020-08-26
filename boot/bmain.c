@@ -397,8 +397,10 @@ extern void (*dev_deinit_callback) (void);
     while (!gui.destroy)
     {
         bsp_tickle();
+        profiler_enter();
         gui_draw(&gui, 0);
         input_proc_keys(NULL);
+        profiler_exit();
     }
     bsp_tickle();
     complete_ind_clbk = NULL;

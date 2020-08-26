@@ -15,32 +15,28 @@
 #include <heap.h>
 #include <bsp_cmd.h>
 
-#define P_RECORDS_MAX 1024
+#define P_RECORDS_MAX 128
 #define P_MAX_DEEPTH 36
 
 int g_profile_deep_level = -1;
-int g_profile_timer_tsf = 1;
-static uint8_t prof_time_init_ok = 0;
 
 enum {
     PFLAG_ENTER = (1 << 0),
     PFLAG_EXIT  = (1 << 1),
 };
 
-typedef struct {
+typedef V_PREPACK struct {
     char const      *func;
-    uint32_t        cycles;
-    int16_t         next;
-    int16_t         caller;
+    uint32_t        timestamp;
+    int8_t          next;
+    int8_t          caller;
     uint8_t         levelsdeep;
     uint8_t         flags;
-} record_t;
+} V_POSTPACK record_t;
 
 typedef struct {
     int16_t top, bottom;
 } rhead_t;
-
-extern uint32_t SystemCoreClock;
 
 static int profiler_print_dvar (void *p1, void *p2);
 
@@ -52,19 +48,7 @@ static int16_t profile_deepth = 0;
 static int caller = -1;
 timer_desc_t profile_timer_desc;
 
-static uint32_t clocks_per_us = (0U);
-
-static inline uint32_t _cpu_cycles_to_us (uint32_t cycles)
-{
-    return cycles / clocks_per_us;
-}
-
-static inline uint32_t _cpu_us_to_cycles (uint32_t us)
-{
-    return us * clocks_per_us;
-}
-
-static inline uint32_t _cpu_cycles_diff (uint32_t a, uint32_t b)
+static inline uint32_t time_diff (uint32_t a, uint32_t b)
 {
     uint32_t diff;
     if (a > b) {
@@ -73,13 +57,6 @@ static inline uint32_t _cpu_cycles_diff (uint32_t a, uint32_t b)
         diff = b - a;
     }
     return diff;
-}
-
-static void delay_us (uint32_t us)
-{
-    volatile uint32_t cycles = _cpu_us_to_cycles(us);
-
-    while (cycles--) {}
 }
 
 static inline record_t *prof_alloc_rec (void)
@@ -91,6 +68,7 @@ static inline record_t *prof_alloc_rec (void)
         records_pool = (record_t *)heap_malloc(P_RECORDS_MAX * sizeof(record_t));
     }
     if (NULL == records_pool) {
+        dprintf("No memory for profiler\n");
         return NULL;
     }
     return &records_pool[last_alloced_record++];
@@ -131,21 +109,18 @@ void _profiler_enter (const char *func, int line)
     if (profile_deepth >= P_MAX_DEEPTH) {
         return;
     }
-    profile_deepth++;
-
     if (profile_deepth <= g_profile_deep_level) {
         rec = prof_alloc_rec();
     }
-
     if (!rec) {
         return;
     }
+    profile_deepth++;
+
     rec->func = func;
     rec->levelsdeep = profile_deepth - 1;
     rec->flags |= PFLAG_ENTER;
-    if (prof_time_init_ok && g_profile_timer_tsf == 1) {
-        rec->cycles = hal_timer_value(&profile_timer_desc);
-    }
+    rec->timestamp = hal_timer_value(&profile_timer_desc);
     prof_link_rec(rec);
 }
 
@@ -159,16 +134,15 @@ void _profiler_exit (const char *func, int line)
     if (profile_deepth <= g_profile_deep_level) {
         rec = prof_alloc_rec();
     }
-    profile_deepth--;
     if (!rec) {
         return;
     }
+    profile_deepth--;
+
     rec->func = func;
     rec->levelsdeep = profile_deepth;
     rec->flags |= PFLAG_EXIT;
-    if (prof_time_init_ok && g_profile_timer_tsf == 1) {
-        rec->cycles = hal_timer_value(&profile_timer_desc);
-    }
+    rec->timestamp = hal_timer_value(&profile_timer_desc);
 
     prof_link_rec(rec);
 }
@@ -203,10 +177,7 @@ static void profiler_timer_init (void)
     profile_timer_desc.init = NULL;
     profile_timer_desc.deinit = NULL;
 
-    if (hal_hires_timer_init(&profile_timer_desc) == 0) {
-        prof_time_init_ok = 1;
-    }
-    if (!prof_time_init_ok) {
+    if (hal_hires_timer_init(&profile_timer_desc) != 0) {
         dprintf("%s() : fail\n", __func__);
     }
 }
@@ -220,21 +191,14 @@ void profiler_init (void)
 {
     cmdvar_t dvar;
 
-    delay_us(1);
     profiler_reset();
-
-    clocks_per_us = SystemCoreClock / 1000000U;
-
-    if (g_profile_timer_tsf == 1) {
-        profiler_timer_init();
-    }
+    profiler_timer_init();
 
     dvar.ptr = (void *)profiler_print_dvar;
     dvar.ptrsize = sizeof(&profiler_print_dvar);
     dvar.type = DVAR_FUNC;
     cmd_register_var(&dvar, "profile");
     cmd_register_i32(&g_profile_deep_level, "proflvl");
-    cmd_register_i32(&g_profile_timer_tsf, "proftsf");
 }
 
 void profiler_deinit (void)
@@ -268,20 +232,15 @@ void profiler_print (void)
         do {
 
             if (entrycnt & 1) {
-                delta_tick = _cpu_cycles_diff(records_pool[prev].cycles, records_pool[cur].cycles);
-                if (prof_time_init_ok && g_profile_timer_tsf == 1) {
-                    delta_us = delta_tick;
-                    dprintf("function \'%s\' took %u.%03u ms\n",
-                        records_pool[cur].func, delta_us / 1000, delta_us % 1000);
-                } else {
-                    delta_us = _cpu_cycles_to_us(delta_tick);
-                    dprintf("function \'%s\' took %u cycles or %u.%03u ms\n",
-                        records_pool[cur].func, delta_tick, delta_us / 1000, delta_us % 1000);
-                }
+                delta_tick = time_diff(records_pool[prev].timestamp, records_pool[cur].timestamp);
+                delta_us = delta_tick;
+                dprintf("\'%s\' %u.%03u ms; ",
+                    records_pool[cur].func, delta_us / 1000, delta_us % 1000);
                 caller = records_pool[prev].caller;
                 if (caller >= 0) {
-                    dprintf("Caller : \'%s\'\n\n", records_pool[caller].func);
+                    dprintf("Caller : \'%s\'", records_pool[caller].func);
                 }
+                dprintf("\n");
             }
 
             prev = cur;

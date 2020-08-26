@@ -39,7 +39,8 @@ typedef struct {
     uint8_t hwaccel: 2,
             cachealgo: 2,
             use_clut: 1,
-            reserved: 3;
+            direct_mode: 1,
+            reserved: 2;
 } screen_conf_t;
 
 typedef struct bsp_video_api_s {
@@ -89,6 +90,8 @@ int vid_set_keying (uint32_t color, int layer);
 int vid_gfx2d_direct (int x, int y, gfx_2d_buf_t *src, int laynum);
 int vid_priv_ctl (int c, void *v);
 void vid_print_info (void);
+
+void vid_refresh_direct (void);
 
 #endif
 

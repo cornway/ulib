@@ -157,16 +157,22 @@ vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *lcd,
 {
     const uint32_t lay_mem_align = 64;
     const uint32_t lay_mem_size = (w * h * pixel_deep) + lay_mem_align;
+    uint32_t lay_size;
     uint32_t fb_size, i;
     uint8_t *fb_mem;
+    int ext_frame = hal_smp_present();
 
-    assert(layers_cnt <= LCD_MAX_LAYER);
-
-    fb_size = lay_mem_size * layers_cnt;
-
+    lay_size += lay_mem_size + lay_mem_align;
+    if (ext_frame) {
+        fb_size = lay_size * (2);
+    } else {
+        fb_size = lay_size;
+    }
     if (lcd->fb.buf) {
         assert(0);
     }
+
+    fb_size = mpu_roundup(fb_size);
 
     fb_mem = (uint8_t *)alloc->malloc(fb_size);
     if (!fb_mem) {
@@ -184,9 +190,15 @@ vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *lcd,
     lcd->fb.w = w;
     lcd->fb.h = h;
 
-    for (i = 0; i < layers_cnt; i++) {
-        lcd->fb.frame[i] = (uint8_t *)(ROUND_UP((arch_word_t)fb_mem, lay_mem_align));
-        fb_mem = fb_mem + lay_mem_align + (fb_size / layers_cnt);
+    lcd->fb.frame_ext = NULL;
+
+    lcd->fb.frame[0] = (uint8_t *)(ROUND_UP((arch_word_t)fb_mem, lay_mem_align));
+    fb_mem = fb_mem + lay_size;
+    lcd->fb.frame[1] = (uint8_t *)(ROUND_UP((arch_word_t)fb_mem, lay_mem_align));
+    fb_mem = fb_mem + lay_size;
+    
+    if (ext_frame) {
+        lcd->fb.frame_ext = fb_mem;
     }
     vid_mpu_create(lcd, &fb_size);
     return lcd->fb.buf;
@@ -285,7 +297,9 @@ int vid_config (screen_conf_t *conf)
     if ((lcd_t *)lcd == g_lcd_inst) {
         return 0;
     }
+    d_memzero(lcd, sizeof(*lcd));
     g_lcd_inst = lcd;
+
     lcd->config = *conf;
     scale = vid_set_win_size(conf->res_x, conf->res_y, bsp_lcd_width, bsp_lcd_height, &x, &y, &w, &h);
 
@@ -299,10 +313,14 @@ int vid_config (screen_conf_t *conf)
         return -1;
     }
 
-    if (screen_hal_set_config(lcd, x, y, w, h, conf->colormode)) {
-        return 0;
+    if (NULL == screen_hal_set_config(lcd, x, y, w, h, conf->colormode)) {
+        return -1;
     }
-    return -1;
+
+    cmd_register_i32(&lcd->cvar_have_smp, "vid_have_smp");
+    lcd->cvar_have_smp = 0;
+
+    return 0;
 }
 
 uint32_t vid_mem_avail (void)
@@ -412,19 +430,19 @@ vid_blend8 (rgba_t *pal, int palnum, uint8_t _fg, uint8_t _bg, uint8_t a)
     return vid_get_pal8_idx(pal, palnum, GFX_ARGB8888_R(pix), GFX_ARGB8888_G(pix), GFX_ARGB8888_B(pix));
 }
 
-static void vid_gen_blut8 (lcd_t *cfg, void *palette, int numentries)
+static size_t vid_gen_blut8 (lcd_t *cfg, void *palette, int numentries)
 {
     int i, j;
     blut8_t *blut;
-    rgba_t *clut;
+    rgba_t clut[256];
 
-    cfg->blutoff = numentries * sizeof(rgba_t);
-    cfg->blut = cfg->config.alloc.malloc(cfg->blutoff + sizeof(blut8_t));
+    assert(arrlen(clut) >= numentries);
+
+    cfg->blut = cfg->config.alloc.malloc(sizeof(blut8_t));
     if (NULL == cfg->blut) {
-        return;
+        return 0;
     }
-    clut = (rgba_t *)cfg->blut;
-    blut = (blut8_t *)((arch_word_t)clut + cfg->blutoff);
+    blut = (blut8_t *)((arch_word_t)cfg->blut);
 
     d_memcpy(clut, palette, numentries * sizeof(rgba_t));
 
@@ -437,6 +455,7 @@ static void vid_gen_blut8 (lcd_t *cfg, void *palette, int numentries)
             }
         }
     }
+    return sizeof(blut8_t);
 }
 
 
@@ -478,7 +497,6 @@ void vid_update (screen_t *in)
         vid_setup_filter(lcd);
         lcd->scaler(in);
     }
-    screen_hal_post_sync(lcd);
 }
 
 void vid_direct_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d)
@@ -495,9 +513,6 @@ void vid_direct (int x, int y, screen_t *s, int laynum)
     screen_t screen;
 
     vid_vsync(1);
-    if (lcd->config.laynum <= laynum) {
-        
-    }
     if (laynum < 0) {
         vid_get_ready_screen(&screen);
     } else {
@@ -523,6 +538,11 @@ void vid_print_info (void)
              lcd->config.laynum, screen_mode2txt_map[lcd->config.colormode]);
     dprintf("framebuffer = <0x%p> 0x%08x bytes\n", lcd->fb.buf, lcd->fb.bytes_total);
     dprintf("Video-\n");
+}
+
+void vid_refresh_direct (void)
+{
+    lcd_t *lcd = LCD();
 }
 
 static int
@@ -607,10 +627,11 @@ screen_copy_2x2_HW (screen_t *in)
     screen_hal_scale_h8_2x2(lcd, &copybuf, lcd->config.hwaccel > 1);
 }
 
+static hal_smp_task_t *task = NULL;
+
 static void
 screen_copy_2x2_8bpp_task (void *arg)
 {
-    lcd_t *lcd = LCD();
     gfx_2d_buf_pair_t *buf = (gfx_2d_buf_pair_t *)arg;
     gfx2d_scale2x2_8bpp(&buf->dest, &buf->src);
 }
@@ -619,15 +640,34 @@ static void
 screen_copy_2x2_8bpp (screen_t *in)
 {
     lcd_t *lcd = LCD();
-    int sw_render = 1;
     screen_t screen;
     gfx_2d_buf_t dest, src;
 
-    vid_get_ready_screen(&screen);
     vid_vsync(1);
+    vid_get_ready_screen(&screen);
     __screen_to_gfx2d(&dest, &screen);
     __screen_to_gfx2d(&src, in);
-    gfx2d_scale2x2_8bpp(&dest, &src);
+
+    if (!lcd->cvar_have_smp) {
+        gfx2d_scale2x2_8bpp(&dest, &src);
+    } else {
+        gfx_2d_buf_pair_t arg = {dest, src};
+        int hsem = hal_smp_hsem_alloc("hsem_task");
+
+        assert(lcd->fb.frame_ext);
+
+        if (task) {
+            hal_smp_sync_task(task);
+            hal_smp_free_task(task);
+        }
+
+        d_memcpy(lcd->fb.frame_ext, in->buf, in->width * in->height);
+        arg.src.buf = lcd->fb.frame_ext;
+
+        hal_smp_hsem_spinlock(hsem);
+        task = hal_smp_sched_task(screen_copy_2x2_8bpp_task, &arg, sizeof(arg));
+        hal_smp_hsem_release(hsem);
+    }
 }
 
 static void
@@ -646,9 +686,9 @@ screen_copy_2x2_8bpp_filt (screen_t *in)
     __screen_to_gfx2d(&dest, &screen);
     __screen_to_gfx2d(&src, in);
     if (lcd->bilinear) {
-        gfx2d_scale2x2_8bpp_filt_Bi((blut8_t *)((uint32_t)lcd->blut + lcd->blutoff), &dest, &src);
+        gfx2d_scale2x2_8bpp_filt_Bi((blut8_t *)lcd->blut, &dest, &src);
     } else {
-        gfx2d_scale2x2_8bpp_filt((blut8_t *)((uint32_t)lcd->blut + lcd->blutoff), &dest, &src);
+        gfx2d_scale2x2_8bpp_filt((blut8_t *)lcd->blut, &dest, &src);
     }
 }
 
@@ -674,7 +714,7 @@ int vid_priv_ctl (int c, void *v)
     switch (c) {
         case LCD_PRIV_GET_TRANSP_LUT:
             if (lcd->blut) {
-                blut8_t *blut = (blut8_t *)((arch_word_t)lcd->blut + lcd->blutoff);
+                blut8_t *blut = (blut8_t *)lcd->blut;
                 *(blut8_t **)v = blut;
             } else {
                 return -CMDERR_NOCORE;
