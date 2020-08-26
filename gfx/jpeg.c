@@ -21,24 +21,9 @@ int jpeg_init (const char *conf)
     return JPEG_UserInit_HAL();
 }
 
-void *jpeg_cache (const char *path, uint32_t *size)
+void *jpeg_cache (const char *path, size_t *size)
 {
-    int f;
-    void *p;
-
-    *size = d_open(path, &f, "r");
-    if (f < 0) {
-        return NULL;
-    }
-
-    p = heap_alloc_shared(*size);
-    if (!p) {
-        d_close(f);
-        return NULL;
-    }
-    d_read(f, p, *size);
-    d_close(f);
-    return p;
+    return d_fcache(path, size);
 }
 
 void jpeg_release (void *p)
@@ -54,7 +39,7 @@ int jpeg_decode (jpeg_info_t *info, void *tempbuf, void *data, uint32_t size)
 void *jpeg_2_rawpic (const char *path, void *tmpbuf, uint32_t bufsize)
 {
     void *cache;
-    uint32_t size = 0;
+    size_t size = 0;
     jpeg_info_t info = {0};
     rawpic_t *rawpic;
 

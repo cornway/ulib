@@ -131,6 +131,7 @@ int d_dirlist (const char *path, fiter_t *flist);
 
 #endif /* BSP_INDIR_API */
 
+void *d_fcache (const char *path, size_t *size);
 int _d_vprintf (int handle, const char *fmt, va_list argptr);
 
 #define d_vprintf _d_vprintf

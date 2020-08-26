@@ -7,7 +7,28 @@
 #include <bsp_api.h>
 #include <misc_utils.h>
 #include <dev_io.h>
+#include <heap.h>
 
+
+void *d_fcache (const char *path, size_t *size)
+{
+    int f;
+    void *p;
+
+    *size = d_open(path, &f, "r");
+    if (f < 0) {
+        return NULL;
+    }
+
+    p = heap_alloc_shared(*size);
+    if (!p) {
+        d_close(f);
+        return NULL;
+    }
+    d_read(f, p, *size);
+    d_close(f);
+    return p;
+}
 
 int d_dirlist (const char *path, fiter_t *flist)
 {
