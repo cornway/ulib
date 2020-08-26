@@ -86,7 +86,7 @@ void vid_vsync (int mode);
 void vid_ptr_align (int *x, int *y);
 
 int vid_copy (screen_t *dest, screen_t *src);
-int vid_set_keying (uint32_t color, int layer);
+int vid_set_keying (uint32_t color);
 int vid_gfx2d_direct (int x, int y, gfx_2d_buf_t *src, int laynum);
 int vid_priv_ctl (int c, void *v);
 void vid_print_info (void);

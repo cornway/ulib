@@ -38,12 +38,6 @@ uint32_t bsp_lcd_height = (uint32_t)-1;
 static lcd_t lcd_def_cfg;
 lcd_t *g_lcd_inst = NULL;
 
-const lcd_layers_t layer_switch[LCD_MAX_LAYER] =
-{
-    LCD_FOREGROUND,
-    LCD_BACKGROUND,
-};
-
 static const char *screen_mode2txt_map[] =
 {
     "***INVALID***",
@@ -127,14 +121,11 @@ void vid_deinit (void)
     g_lcd_inst = NULL;
 }
 
-int vid_set_keying (uint32_t color, int layer)
+int vid_set_keying (uint32_t color)
 {
     lcd_t *lcd = LCD();
 
-    if (layer >= lcd->config.laynum || layer < 0) {
-        return -1;
-    }
-    screen_hal_set_keying(lcd, color, (lcd_layers_t)layer);
+    screen_hal_set_keying(lcd, color);
     return 0;
 }
 
@@ -153,12 +144,12 @@ void vid_wh (screen_t *s)
 
 static void *
 vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *lcd,
-                       uint32_t w, uint32_t h, uint32_t pixel_deep, uint32_t layers_cnt)
+                       uint32_t w, uint32_t h, uint32_t pixel_deep)
 {
     const uint32_t lay_mem_align = 64;
     const uint32_t lay_mem_size = (w * h * pixel_deep) + lay_mem_align;
     uint32_t lay_size;
-    uint32_t fb_size, i;
+    uint32_t fb_size;
     uint8_t *fb_mem;
     int ext_frame = hal_smp_present();
 
@@ -186,17 +177,14 @@ vid_create_framebuffer (screen_alloc_t *alloc, lcd_t *lcd,
 
     lcd->fb.buf = fb_mem;
     lcd->fb.bytes_total = fb_size;
-    lcd->config.laynum = layers_cnt;
     lcd->fb.w = w;
     lcd->fb.h = h;
 
     lcd->fb.frame_ext = NULL;
 
-    lcd->fb.frame[0] = (uint8_t *)(ROUND_UP((arch_word_t)fb_mem, lay_mem_align));
+    lcd->fb.frame = (uint8_t *)(ROUND_UP((arch_word_t)fb_mem, lay_mem_align));
     fb_mem = fb_mem + lay_size;
-    lcd->fb.frame[1] = (uint8_t *)(ROUND_UP((arch_word_t)fb_mem, lay_mem_align));
-    fb_mem = fb_mem + lay_size;
-    
+
     if (ext_frame) {
         lcd->fb.frame_ext = fb_mem;
     }
@@ -308,8 +296,11 @@ int vid_config (screen_conf_t *conf)
     lcd_x_size_var = w;
     lcd_y_size_var = h;
 
+    if (conf->laynum) {
+        dprintf("%s(): Deprecated conf->laynum!\n", __func__);
+    }
     assert(screen_mode2pixdeep[conf->colormode]);
-    if (!vid_create_framebuffer(&conf->alloc, lcd, w, h, screen_mode2pixdeep[conf->colormode], conf->laynum)) {
+    if (!vid_create_framebuffer(&conf->alloc, lcd, w, h, screen_mode2pixdeep[conf->colormode])) {
         return -1;
     }
 
@@ -331,25 +322,22 @@ uint32_t vid_mem_avail (void)
     return lcd->fb.bytes_total;
 }
 
-void vid_vsync (int mode)
+void vid_vsync (int unused)
 {
     lcd_t *lcd = LCD();
 
     profiler_enter();
-    if (mode) {
-        screen_hal_reload_layer(lcd);
-    }
-    screen_hal_sync(lcd, 1);
+    screen_hal_sync(lcd);
     profiler_exit();
 }
 
-void vid_get_screen (screen_t *screen, int laynum)
+void vid_get_screen (screen_t *screen, int unused)
 {
     lcd_t *lcd = LCD();
 
     screen->width = lcd->fb.w;
     screen->height = lcd->fb.h;
-    screen->buf = (void *)lcd->fb.frame[laynum];
+    screen->buf = lcd->fb.frame;
     screen->x = 0;
     screen->y = 0;
     screen->colormode = lcd->config.colormode;
@@ -358,9 +346,7 @@ void vid_get_screen (screen_t *screen, int laynum)
 
 void vid_get_ready_screen (screen_t *screen)
 {
-    lcd_t *lcd = LCD();
-
-    vid_get_screen(screen, lcd->fb.rd_idx);
+    vid_get_screen(screen, 0);
 }
 
 static int
@@ -458,18 +444,16 @@ static size_t vid_gen_blut8 (lcd_t *cfg, void *palette, int numentries)
     return sizeof(blut8_t);
 }
 
-
 void vid_set_clut (void *palette, uint32_t clut_num_entries)
 {
-    int layer = 0;
     lcd_t *lcd = LCD();
 
     assert(lcd);
-    screen_hal_sync(lcd, 1);
+    screen_hal_sync(lcd);
     if (lcd->config.use_clut && NULL == lcd->blut) {
         vid_gen_blut8(lcd, palette, clut_num_entries);
     }
-    screen_hal_set_clut (lcd, palette, clut_num_entries, layer);
+    screen_hal_set_clut (lcd, palette, clut_num_entries);
 }
 
 static void vid_setup_filter (lcd_t *lcd)
@@ -509,7 +493,6 @@ void vid_direct_copy (gfx_2d_buf_t *dest2d, gfx_2d_buf_t *src2d)
 
 void vid_direct (int x, int y, screen_t *s, int laynum)
 {
-    lcd_t *lcd = LCD();
     screen_t screen;
 
     vid_vsync(1);
@@ -542,7 +525,6 @@ void vid_print_info (void)
 
 void vid_refresh_direct (void)
 {
-    lcd_t *lcd = LCD();
 }
 
 static int

@@ -137,6 +137,7 @@ typedef struct gui_s gui_t;
 typedef struct gui_bsp_api_s {
     bsp_heap_api_t mem;
 
+    void (*refresh) (gui_t *);
     void (*fill_rect) (dim_t *, dim_t *, rgba_t);
     void (*fill_comp) (component_t *, rgba_t);
     int  (*string_at) (component_t *, int, rgba_t, const char *, int);
