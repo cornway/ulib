@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include <arch.h>
-#include "../../common/int/bsp_cmd_int.h"
 
 #include <term.h>
 #include <bsp_cmd.h>

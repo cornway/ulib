@@ -56,6 +56,8 @@ static int cmd_util_serial (int argc, const char **argv);
 static int cmd_intutil_cat (int argc, const char **argv);
 static int cmd_exec_cmdfile (int argc, const char **argv);
 static int cmd_util_nop (int argc, const char **argv);
+static int cmd_heap_stat (int argc, const char **argv);
+
 
 int boot_char_cmd_handler (int argc, const char **argv);
 
@@ -88,6 +90,7 @@ static const cmd_func_map_t cmd_func_tbl[] =
     {"bin",         boot_char_cmd_handler},
 #endif
     {"nop",         cmd_util_nop},
+    {"smem",        cmd_heap_stat},
 };
 
 static const cmd_func_map_t cmd_priv_func_tbl[] =
@@ -284,6 +287,11 @@ static int __cmd_print_env (int argc, const char **argv)
 void cmd_tickle (void)
 {
     cmd_exec_pending(cmd_execute);
+}
+
+static int cmd_heap_stat (int argc, const char **argv)
+{
+    heap_stat();
 }
 
 static int __cmd_fs_touch (int argc, const char **argv)

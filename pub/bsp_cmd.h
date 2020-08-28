@@ -5,6 +5,8 @@
     extern "C" {
 #endif
 
+#include <bsp_api.h>
+
 #define CMD_MAX_NAME        (16)
 #define CMD_MAX_PATH        (128)
 #define CMD_MAX_BUF         (256)

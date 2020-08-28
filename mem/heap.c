@@ -16,14 +16,24 @@
 #include "../../common/int/mpu.h"
 #endif
 
-void *m_pool_init (void *pool, size_t size);
 void m_init (void);
+void *m_pool_init (void *pool, size_t size, int link);
+void *m_pool_init_ext (void *pool, size_t size, int link, size_t frag_size);
 void *m_malloc (void *pool, size_t size, const char *caller_name);
 void *m_malloc_align (void *pool, uint32_t size, uint32_t align);
 void m_free (void *p);
 size_t m_avail (void *pool);
 void m_stat (void);
+size_t mchunk_size (void *_mchunk);
+void *m_realloc (void *ptr, size_t size, const char *caller_func);
+void mpool_frag_stat (void *_mpool);
 
+typedef struct heap_pool_desc_s {
+    void *mpool;
+    size_t size, chunk_size, chunk_min_size;
+} heap_pool_desc_t;
+
+heap_pool_desc_t heap_pool_desc[5] = {0};
 
 static void *heap_shared_pool;
 static void *heap_pool;
@@ -45,11 +55,28 @@ static inline void *
 __heap_malloc (size_t size)
 #endif /* HEAP_TRACE */
 {
-    void *p;
+    int i;
+    void *p = NULL;
     size = ROUND_UP(size, sizeof(arch_word_t));
-    p = m_malloc(heap_pool, size, caller_func);
+
+    for (i = 0; !p && i < arrlen(heap_pool_desc); i++) {
+        if (size <= heap_pool_desc[i].chunk_size && size >= heap_pool_desc[i].chunk_min_size) {
+            p = m_malloc(heap_pool_desc[i].mpool, size, caller_func);
+        }
+    }
+
     if (!p) {
-        heap_dbg("[%s] Failed to allocate [%u] bytes\n", caller_func, size);
+        p = m_malloc(heap_pool, size, caller_func);
+    }
+    if (!p) {
+        dprintf("[%s] Failed to allocate [%u] bytes\n", caller_func, size);
+        heap_stat();
+        for (i = 0; !p && i < arrlen(heap_pool_desc); i++) {
+            dprintf("Mpool total size=%u, size=%u, min size=%u\n",
+                heap_pool_desc[i].size, heap_pool_desc[i].chunk_size, heap_pool_desc[i].chunk_min_size);
+            mpool_frag_stat(heap_pool_desc[i].mpool);
+        }
+        mpool_frag_stat(heap_pool);
     }
     return p;
 }
@@ -76,17 +103,7 @@ static inline void *
 __heap_realloc (void *x, size_t size)
 #endif
 {
-    if (m_avail(heap_pool) < size) {
-        fatal_error("%s() : Failed; size= %d, avail= %d\n",
-            __func__, size, m_avail(heap_pool));
-    }
-#if HEAP_TRACE
-    __heap_free(x, caller_func);
-    return __heap_malloc(size, caller_func);
-#else
-    __heap_free(x);
-    return __heap_malloc(size);
-#endif /* HEAP_TRACE */
+    return m_realloc(x, size, caller_func);
 }
 
 void heap_dump (void)
@@ -102,15 +119,20 @@ void heap_stat (void)
     arch_get_stack(&sp_mem, &sp_size);
     arch_get_heap(&heap_mem, &heap_size);
 
-    dprintf("Memory :\n");
+#ifdef BOOT
+    dprintf("Driver Memory");
+#else
+    dprintf("User Memory");
+#endif
+    dprintf("===============\n");
     dprintf("stack : <0x%p> + %u bytes\n", (void *)sp_mem, sp_size);
     dprintf("heap : <0x%p> + %u bytes\n", (void *)heap_mem, heap_size);
 #ifdef BOOT
     arch_get_usr_heap(&heap_mem, &heap_size);
     dprintf("user heap : <0x%p> + %u bytes\n", (void *)heap_mem, heap_size);
 #endif
-
     m_stat();
+    dprintf("===============\n");
 }
 
 #ifdef BOOT
@@ -126,16 +148,16 @@ void heap_init (void)
     assert(heap_size > dma_pool_size);
 
     heap_size -= dma_pool_size;
-    heap_pool = m_pool_init((void *)heap_mem, heap_size);
+    heap_pool = m_pool_init((void *)heap_mem, heap_size, 1);
     heap_mem += heap_size;
-    dma_pool = m_pool_init((void *)heap_mem, dma_pool_size);
+    dma_pool = m_pool_init((void *)heap_mem, dma_pool_size, 1);
     if (mpu_lock(heap_mem, &dma_pool_size, "c") < 0) {
         assert(0);
     }
     heap_shared_pool = NULL;
     if (EXEC_REGION_DRIVER()) {
         arch_get_usr_heap(&heap_mem, &heap_size);
-        heap_shared_pool = m_pool_init((void *)heap_mem, heap_size);
+        heap_shared_pool = m_pool_init((void *)heap_mem, heap_size, 1);
     }
 }
 
@@ -143,13 +165,41 @@ void heap_init (void)
 
 void heap_init (void)
 {
+    int i;
     arch_word_t heap_mem, heap_size;
 
     m_init();
 
     arch_get_heap(&heap_mem, &heap_size);
 
-    heap_pool = m_pool_init((void *)heap_mem, heap_size);
+    heap_pool_desc[0].chunk_size = 0x100;
+    heap_pool_desc[0].chunk_min_size = 0;
+    heap_pool_desc[0].size = 768 * heap_pool_desc[0].chunk_size;
+
+    heap_pool_desc[1].chunk_size = 0x1000;
+    heap_pool_desc[1].chunk_min_size = 0;
+    heap_pool_desc[1].size = 64 * heap_pool_desc[1].chunk_size;
+
+    heap_pool_desc[2].chunk_size = 0x2000;
+    heap_pool_desc[2].chunk_min_size = 0;
+    heap_pool_desc[2].size = 64 * heap_pool_desc[2].chunk_size;
+
+    heap_pool_desc[3].chunk_size = 0x10000;
+    heap_pool_desc[3].chunk_min_size = 0x4000;
+    heap_pool_desc[3].size = 16 * heap_pool_desc[3].chunk_size;
+
+    heap_pool_desc[4].chunk_size = 0x400000;
+    heap_pool_desc[4].chunk_min_size = 0x80000;
+    heap_pool_desc[4].size = 2 * heap_pool_desc[4].chunk_size;
+
+    for (i = 0; i < arrlen(heap_pool_desc); i++) {
+        assert(heap_pool_desc[i].size <= heap_size);
+        heap_pool_desc[i].mpool = m_pool_init_ext((void *)heap_mem, heap_pool_desc[i].size, 1, heap_pool_desc[i].chunk_min_size);
+        heap_mem += heap_pool_desc[i].size;
+        heap_size -= heap_pool_desc[i].size;
+    }
+
+    heap_pool = m_pool_init((void *)heap_mem, heap_size, 1);
     heap_shared_pool = heap_pool;
     dma_pool = NULL;
 }
@@ -187,7 +237,7 @@ void *heap_alloc_shared (size_t size)
 #if HEAP_TRACE
 void *_heap_alloc_shared (size_t size, const char *caller_func)
 {
-    return __heap_malloc(size, 1, caller_func);
+    return __heap_malloc(size, caller_func);
 }
 #else /* HEAP_TRACE */
 
@@ -273,6 +323,4 @@ void *heap_alloc_shared_align (size_t size, size_t align)
 {
     return m_malloc_align(heap_shared_pool, size, align);
 }
-
-
 

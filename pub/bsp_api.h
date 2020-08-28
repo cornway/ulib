@@ -1,7 +1,9 @@
 #ifndef __BSP_API_H__
 #define __BSP_API_H__
 
+#ifdef BOOT
 #include "../../common/int/it_export.h"
+#endif
 
 #ifdef __cplusplus
     extern "C" {

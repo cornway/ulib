@@ -29,6 +29,10 @@ extern int g_dev_debug_level;
 { if (!(exp)) fatal_error("assertion failed! : %s() : \"%s\"\n", __func__, #exp); }
 #endif
 
+#ifndef d_assert
+#define d_assert(x) assert(x)
+#endif
+
 #ifndef arrlen
 #define arrlen(a) sizeof(a) / sizeof(a[0])
 #endif
