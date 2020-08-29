@@ -22,7 +22,14 @@ static inline int cs_check_symb (void *symb) {return 1;}
 
 #define PTR_ALIGNED(p, a) ((a) && ((arch_word_t)(p) % (a) == 0))
 
+typedef struct {
+    size_t total_size;
+    size_t max_frag_size;
+    size_t min_frag_size;
+} heap_conf_t;
+
 void heap_init (void);
+void heap_init_ext (const heap_conf_t *conf);
 void heap_deinit (void);
 size_t heap_avail (void);
 void heap_dump (void);

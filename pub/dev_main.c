@@ -36,6 +36,16 @@ static bsp_user_api_t user_api =
     },
 };
 
+const heap_conf_t heap_conf[] =
+{
+    {0x100 * 768, 0x100, 0},
+    {0x1000 * 64, 0x1000, 0},
+    {0x10000 * 16, 0x10000, 0x4000},
+    {0x400000 * 2, 0x400000, 0x80000},
+    {(size_t)-1, (size_t)-1, 0},
+    {0, 0, 0},
+};
+
 int app_main (void)
 {
     char **argv;
@@ -46,7 +56,7 @@ int app_main (void)
     argv = bsp_argc_argv_get(&argc);
 
     dev_hal_init();
-    heap_init();
+    heap_init_ext(&heap_conf);
     bsp_drv_init();
     heap_stat();
     VID_PreConfig();

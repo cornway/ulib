@@ -243,6 +243,7 @@ mchunk_t *mpool_try_realloc (mpool_t *mpool, mchunk_t *mchunk, size_t size)
     }
     mchunk = mchunk_fragment_top(mpool, mchunk, mchunk->size - size);
     __mchunk_link(&mpool->freelist, mchunk);
+    mlist_defrag_all(mpool);
     return oldchunk;
 }
 
